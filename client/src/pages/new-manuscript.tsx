@@ -10,7 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { isUnauthorizedError } from "@/lib/auth-utils";
-import { Upload, CheckCircle2, Loader2, FileText, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Upload, CheckCircle2, Loader2, FileText, X, ClipboardPaste } from "lucide-react";
 
 const STAGES = [
   { value: "planning", label: "Planning & Design", description: "Still developing idea" },
@@ -35,9 +36,16 @@ const HELP_TYPES = [
   "Ethics",
 ];
 
-const ANALYSIS_STEPS = [
+const ANALYSIS_STEPS_UPLOAD = [
   "Uploading file to secure storage...",
   "Extracting text content...",
+  "Analyzing structure and organization...",
+  "Generating manuscript preview...",
+];
+
+const ANALYSIS_STEPS_PASTE = [
+  "Processing your text...",
+  "Saving manuscript content...",
   "Analyzing structure and organization...",
   "Generating manuscript preview...",
 ];
@@ -53,6 +61,8 @@ export default function NewManuscript() {
   const [title, setTitle] = useState("");
   const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
+  const [inputMode, setInputMode] = useState<"upload" | "paste">("upload");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStep, setAnalysisStep] = useState(0);
@@ -114,6 +124,16 @@ export default function NewManuscript() {
     },
   });
 
+  const pasteTextMutation = useMutation({
+    mutationFn: async ({ manuscriptId, text }: { manuscriptId: string; text: string }) => {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/paste-text`, { text });
+      return res.json();
+    },
+    onError: (error: Error) => {
+      console.error("Paste text error:", error);
+    },
+  });
+
   const handleStartAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
@@ -121,7 +141,7 @@ export default function NewManuscript() {
 
     let fileKey: string | null = null;
 
-    if (selectedFile) {
+    if (inputMode === "upload" && selectedFile) {
       setAnalysisStep(0);
       setAnalysisProgress(10);
       const uploadResult = await uploadFile(selectedFile);
@@ -148,13 +168,12 @@ export default function NewManuscript() {
 
       if (fileKey) {
         await extractMutation.mutateAsync(manuscript.id);
-        setAnalysisProgress(85);
-        setAnalysisStep(3);
-      } else {
-        setAnalysisProgress(85);
-        setAnalysisStep(3);
+      } else if (inputMode === "paste" && pastedText.trim()) {
+        await pasteTextMutation.mutateAsync({ manuscriptId: manuscript.id, text: pastedText.trim() });
       }
 
+      setAnalysisProgress(85);
+      setAnalysisStep(3);
       setAnalysisProgress(100);
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
 
@@ -169,9 +188,9 @@ export default function NewManuscript() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const maxSize = 10 * 1024 * 1024;
+      const maxSize = 50 * 1024 * 1024;
       if (file.size > maxSize) {
-        toast({ title: "File too large", description: "Maximum file size is 10MB", variant: "destructive" });
+        toast({ title: "File too large", description: "Maximum file size is 50MB", variant: "destructive" });
         return;
       }
       setSelectedFile(file);
@@ -193,7 +212,10 @@ export default function NewManuscript() {
   const canContinue = () => {
     if (step === 1) return stage !== "";
     if (step === 2) return selectedHelp.length > 0;
-    if (step === 3) return title !== "" || fileName !== "";
+    if (step === 3) {
+      const hasContent = inputMode === "upload" ? selectedFile !== null : pastedText.trim().length > 0;
+      return hasContent || title !== "";
+    }
     return false;
   };
 
@@ -219,7 +241,7 @@ export default function NewManuscript() {
           <p className="text-sm text-muted-foreground mb-6">{Math.round(analysisProgress)}% complete</p>
 
           <div className="text-left space-y-3">
-            {ANALYSIS_STEPS.map((stepText, i) => (
+            {(inputMode === "paste" ? ANALYSIS_STEPS_PASTE : ANALYSIS_STEPS_UPLOAD).map((stepText, i) => (
               <div key={i} className="flex items-center gap-3">
                 <CheckCircle2 className={`w-5 h-5 shrink-0 ${analysisStep > i ? "text-sage" : analysisStep === i ? "text-primary" : "text-muted-foreground/30"}`} />
                 <span className={`text-sm ${analysisStep > i ? "text-foreground" : analysisStep === i ? "text-primary font-medium" : "text-muted-foreground/50"}`}>
@@ -333,56 +355,105 @@ export default function NewManuscript() {
 
         {step === 3 && (
           <div>
-            <h2 className="text-base font-semibold mb-4">Upload Your Manuscript</h2>
+            <h2 className="text-base font-semibold mb-4">Add Your Manuscript</h2>
 
-            {!selectedFile ? (
-              <div
-                className="border-2 border-dashed border-border rounded-md p-8 text-center mb-4 cursor-pointer hover:border-primary/30 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-                data-testid="dropzone-upload"
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={inputMode === "upload" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setInputMode("upload");
+                  setPastedText("");
+                }}
+                data-testid="button-mode-upload"
               >
-                <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-1">
-                  Drag & drop or click to browse
-                </p>
-                <p className="text-xs text-muted-foreground">Supported: PDF, DOCX, TXT (max 10MB)</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx,.txt"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  data-testid="input-file"
-                />
-                <Button className="mt-3" size="sm" data-testid="button-choose-file">
-                  Choose File
-                </Button>
-              </div>
-            ) : (
-              <div className="border border-primary/30 bg-primary/5 rounded-md p-4 mb-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="w-5 h-5 text-primary shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{fileName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(selectedFile.size / 1024).toFixed(1)} KB
-                      </p>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload File
+              </Button>
+              <Button
+                variant={inputMode === "paste" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setInputMode("paste");
+                  removeFile();
+                }}
+                data-testid="button-mode-paste"
+              >
+                <ClipboardPaste className="w-4 h-4 mr-2" />
+                Paste Text
+              </Button>
+            </div>
+
+            {inputMode === "upload" && (
+              <>
+                {!selectedFile ? (
+                  <div
+                    className="border-2 border-dashed border-border rounded-md p-8 text-center mb-4 cursor-pointer hover:border-primary/30 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    data-testid="dropzone-upload"
+                  >
+                    <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Drag & drop or click to browse
+                    </p>
+                    <p className="text-xs text-muted-foreground">Supported: PDF, DOCX, TXT (max 50MB)</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      data-testid="input-file"
+                    />
+                    <Button className="mt-3" size="sm" data-testid="button-choose-file">
+                      Choose File
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border border-primary/30 bg-primary/5 rounded-md p-4 mb-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="w-5 h-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{fileName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(selectedFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={removeFile}
+                        className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                        data-testid="button-remove-file"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={removeFile}
-                    className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                    data-testid="button-remove-file"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+                )}
+              </>
+            )}
+
+            {inputMode === "paste" && (
+              <div className="mb-4">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Paste your manuscript sections below (abstract, introduction, methods, etc.)
+                </p>
+                <Textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Paste your manuscript text here... You can include any section such as the abstract, introduction, methodology, results, or discussion."
+                  className="min-h-[200px] text-sm"
+                  data-testid="textarea-paste-manuscript"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {pastedText.length > 0 ? `${pastedText.length.toLocaleString()} characters` : "No text entered"}
+                </p>
               </div>
             )}
 
             <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">Or enter manuscript title:</label>
+              <label className="text-sm font-medium mb-2 block">Manuscript title:</label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}

@@ -44,14 +44,16 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `GET /api/manuscripts` - Get current user's manuscripts
 - `POST /api/manuscripts` - Create manuscript
 - `POST /api/manuscripts/:id/extract` - Extract text from uploaded manuscript file
-- `POST /api/uploads/request-url` - Get presigned URL for file upload
+- `POST /api/manuscripts/:id/paste-text` - Save pasted manuscript text directly
+- `POST /api/uploads/request-url` - Get presigned URL for file upload (max 50MB)
 
 ## User Flow
 1. Welcome screen → Sign In (Replit Auth)
 2. Profile Setup (3 steps): Research Level → Primary Field → Learning Mode
 3. Dashboard with gamification stats, user profile info, sign out
-4. New Manuscript flow (3 steps): Stage → Help Types → Upload/Title
-5. File upload → Object Storage → Text extraction (PDF/DOCX/TXT) → Preview text saved
+4. New Manuscript flow (3 steps): Stage → Help Types → Upload or Paste
+5. File upload (up to 50MB) → Object Storage → Text extraction (PDF/DOCX/TXT) → Preview text saved
+6. Or paste manuscript sections directly → Text saved as preview
 
 ## State Management
 - Authentication managed via Replit Auth sessions (server-side)

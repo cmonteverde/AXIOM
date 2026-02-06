@@ -146,5 +146,29 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/manuscripts/:id/paste-text", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const { text } = req.body;
+      if (!text || typeof text !== "string" || text.trim().length === 0) {
+        return res.status(400).json({ message: "Text content is required" });
+      }
+
+      const previewText = text.slice(0, 500).trim();
+      await storage.updateManuscriptExtraction(manuscript.id, previewText, "completed");
+      return res.json({ status: "completed", previewText });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
   return httpServer;
 }
