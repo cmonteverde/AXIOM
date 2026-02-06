@@ -39,25 +39,26 @@ import {
   X,
 } from "lucide-react";
 
-const SECTION_HELP_TYPES = [
-  "Title",
-  "Abstract",
-  "Introduction",
-  "Methods",
-  "Results",
-  "Discussion",
-  "Limitations",
-  "Conclusions & Recommendations",
-  "Keywords",
-  "Structural Analysis",
-  "Language & Clarity",
-  "Statistics",
-  "Reference Management",
-  "Ethics",
-  "Journal Selection",
-  "Cover Letter",
-  "Reviewer Response",
+const HELP_TYPE_GROUPS = [
+  {
+    label: "Manuscript Sections",
+    types: ["Title", "Abstract", "Introduction", "Methods", "Results", "Discussion", "Limitations", "Conclusions & Recommendations"],
+  },
+  {
+    label: "Quality & Structure",
+    types: ["Keywords", "Structural Analysis", "Language & Clarity", "Statistics", "Reference Management", "Ethics"],
+  },
+  {
+    label: "Submission Package",
+    types: ["Cover Letter", "Reviewer Response"],
+  },
+  {
+    label: "Pre-Submission",
+    types: ["Journal Selection"],
+  },
 ];
+
+const SECTION_HELP_TYPES = HELP_TYPE_GROUPS.flatMap((g) => g.types);
 
 const ALL_HELP_TYPES = ["Comprehensive Review", ...SECTION_HELP_TYPES];
 
@@ -312,23 +313,28 @@ function AnalysisOptionsDialog({
               <p className="text-xs text-muted-foreground mt-0.5">All areas. May take a few minutes for longer manuscripts.</p>
             </div>
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {SECTION_HELP_TYPES.map((type) => (
-              <label
-                key={type}
-                className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
-                  selected.has(type) ? "border-primary bg-primary/5" : "border-border"
-                }`}
-                data-testid={`option-help-${type.toLowerCase().replace(/[^a-z]/g, "-")}`}
-              >
-                <Checkbox
-                  checked={selected.has(type)}
-                  onCheckedChange={() => toggleType(type)}
-                />
-                <span className="text-xs">{type}</span>
-              </label>
-            ))}
-          </div>
+          {HELP_TYPE_GROUPS.map((group) => (
+            <div key={group.label} className="mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{group.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {group.types.map((type) => (
+                  <label
+                    key={type}
+                    className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                      selected.has(type) ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                    data-testid={`option-help-${type.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                  >
+                    <Checkbox
+                      checked={selected.has(type)}
+                      onCheckedChange={() => toggleType(type)}
+                    />
+                    <span className="text-xs">{type}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-analysis">
