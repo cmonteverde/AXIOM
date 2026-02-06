@@ -240,13 +240,13 @@ function AnalysisOptionsDialog({
   onConfirm: (helpTypes: string[]) => void;
   isAnalyzing: boolean;
 }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set(defaultHelpTypes));
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (open) {
-      setSelected(new Set(defaultHelpTypes));
+      setSelected(new Set());
     }
-  }, [open, defaultHelpTypes]);
+  }, [open]);
 
   const toggleType = (type: string) => {
     if (type === "Comprehensive Review") {
@@ -443,10 +443,14 @@ export default function ManuscriptWorkspace() {
       const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`, { helpTypes });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, helpTypes) => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
-      toast({ title: "Analysis Complete", description: "SAGE has completed a comprehensive review of your manuscript." });
+      const isComprehensive = helpTypes.includes("Comprehensive Review") || helpTypes.length >= SECTION_HELP_TYPES.length;
+      const description = isComprehensive
+        ? "SAGE has completed a comprehensive review of your manuscript."
+        : `SAGE has completed analysis of: ${helpTypes.join(", ")}.`;
+      toast({ title: "Analysis Complete", description });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
