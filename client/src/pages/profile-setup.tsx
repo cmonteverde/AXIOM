@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,7 +46,9 @@ export default function ProfileSetup() {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [researchLevel, setResearchLevel] = useState("");
+  const [otherResearchLevel, setOtherResearchLevel] = useState("");
   const [primaryField, setPrimaryField] = useState("");
+  const [otherPrimaryField, setOtherPrimaryField] = useState("");
   const [learningMode, setLearningMode] = useState("");
 
   const createProfileMutation = useMutation({
@@ -66,8 +69,14 @@ export default function ProfileSetup() {
   const progressWidth = `${(step / 3) * 100}%`;
 
   const canContinue = () => {
-    if (step === 1) return researchLevel !== "";
-    if (step === 2) return primaryField !== "";
+    if (step === 1) {
+      if (researchLevel === "Other") return otherResearchLevel.trim() !== "";
+      return researchLevel !== "";
+    }
+    if (step === 2) {
+      if (primaryField === "Other") return otherPrimaryField.trim() !== "";
+      return primaryField !== "";
+    }
     if (step === 3) return learningMode !== "";
     return false;
   };
@@ -76,7 +85,13 @@ export default function ProfileSetup() {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      createProfileMutation.mutate({ researchLevel, primaryField, learningMode });
+      const finalResearchLevel = researchLevel === "Other" ? otherResearchLevel : researchLevel;
+      const finalPrimaryField = primaryField === "Other" ? otherPrimaryField : primaryField;
+      createProfileMutation.mutate({ 
+        researchLevel: finalResearchLevel, 
+        primaryField: finalPrimaryField, 
+        learningMode 
+      });
     }
   };
 
@@ -101,25 +116,37 @@ export default function ProfileSetup() {
             <h2 className="text-base font-semibold mb-4" data-testid="text-step1-title">Research level?</h2>
             <div className="space-y-3">
               {RESEARCH_LEVELS.map((level) => (
-                <label
-                  key={level}
-                  className={`flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-colors ${
-                    researchLevel === level
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                  data-testid={`option-level-${level.toLowerCase().replace(/[^a-z]/g, "-")}`}
-                >
-                  <input
-                    type="radio"
-                    name="researchLevel"
-                    value={level}
-                    checked={researchLevel === level}
-                    onChange={() => setResearchLevel(level)}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <span className="text-sm font-medium">{level}</span>
-                </label>
+                <div key={level}>
+                  <label
+                    className={`flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-colors ${
+                      researchLevel === level
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                    data-testid={`option-level-${level.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                  >
+                    <input
+                      type="radio"
+                      name="researchLevel"
+                      value={level}
+                      checked={researchLevel === level}
+                      onChange={() => setResearchLevel(level)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    <span className="text-sm font-medium">{level}</span>
+                  </label>
+                  {level === "Other" && researchLevel === "Other" && (
+                    <div className="mt-2 pl-7">
+                      <Input
+                        placeholder="Please specify your research level..."
+                        value={otherResearchLevel}
+                        onChange={(e) => setOtherResearchLevel(e.target.value)}
+                        className="text-sm"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -140,6 +167,17 @@ export default function ProfileSetup() {
                 ))}
               </SelectContent>
             </Select>
+            {primaryField === "Other" && (
+              <div className="mt-4">
+                <Input
+                  placeholder="Please specify your primary field..."
+                  value={otherPrimaryField}
+                  onChange={(e) => setOtherPrimaryField(e.target.value)}
+                  className="text-sm"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
         )}
 
