@@ -11,7 +11,8 @@ export interface IStorage {
   getManuscriptsByUserId(userId: string): Promise<Manuscript[]>;
   getManuscript(id: string): Promise<Manuscript | undefined>;
   createManuscript(manuscript: InsertManuscript): Promise<Manuscript>;
-  updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string): Promise<Manuscript | undefined>;
+  updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string, fullText?: string): Promise<Manuscript | undefined>;
+  updateManuscriptAnalysis(id: string, analysisJson: any, analysisStatus: string, readinessScore?: number): Promise<Manuscript | undefined>;
   deleteManuscriptsByUserId(userId: string): Promise<void>;
 }
 
@@ -60,8 +61,21 @@ export class DatabaseStorage implements IStorage {
     return manuscript;
   }
 
-  async updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string): Promise<Manuscript | undefined> {
-    const [manuscript] = await db.update(manuscripts).set({ previewText, extractionStatus }).where(eq(manuscripts.id, id)).returning();
+  async updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string, fullText?: string): Promise<Manuscript | undefined> {
+    const updateData: any = { previewText, extractionStatus };
+    if (fullText !== undefined) {
+      updateData.fullText = fullText;
+    }
+    const [manuscript] = await db.update(manuscripts).set(updateData).where(eq(manuscripts.id, id)).returning();
+    return manuscript;
+  }
+
+  async updateManuscriptAnalysis(id: string, analysisJson: any, analysisStatus: string, readinessScore?: number): Promise<Manuscript | undefined> {
+    const updateData: any = { analysisJson, analysisStatus };
+    if (readinessScore !== undefined) {
+      updateData.readinessScore = readinessScore;
+    }
+    const [manuscript] = await db.update(manuscripts).set(updateData).where(eq(manuscripts.id, id)).returning();
     return manuscript;
   }
 

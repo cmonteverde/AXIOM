@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,8 +13,11 @@ export const manuscripts = pgTable("manuscripts", {
   helpTypes: text("help_types").array().notNull(),
   fileName: text("file_name"),
   fileKey: text("file_key"),
+  fullText: text("full_text"),
   previewText: text("preview_text"),
   extractionStatus: text("extraction_status").default("pending"),
+  analysisJson: jsonb("analysis_json"),
+  analysisStatus: text("analysis_status").default("none"),
   readinessScore: integer("readiness_score"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -25,8 +28,11 @@ export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   readinessScore: true,
   status: true,
   createdAt: true,
+  fullText: true,
   previewText: true,
   extractionStatus: true,
+  analysisJson: true,
+  analysisStatus: true,
 });
 
 export type InsertManuscript = z.infer<typeof insertManuscriptSchema>;

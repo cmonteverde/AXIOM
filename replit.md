@@ -9,6 +9,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Database**: PostgreSQL (Drizzle ORM)
 - **Authentication**: Replit Auth (OIDC with Google, GitHub, Apple, email)
 - **File Storage**: Replit App Storage (GCS-backed object storage)
+- **AI**: OpenAI API (process.env.OPENAI_API_KEY) for manuscript analysis using UMA framework
 - **Font**: Inter (sans-serif)
 - **Color Palette**:
   - Primary Purple: #7C3AED (actions, headings, brand)
@@ -20,7 +21,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Logo**: attached_assets/SAGE_logo_1770411503546.png (shown on welcome screen)
 
 ## Project Structure
-- `client/src/pages/` - Page components (welcome, profile-setup, dashboard, new-manuscript)
+- `client/src/pages/` - Page components (welcome, profile-setup, dashboard, new-manuscript, manuscript-workspace)
 - `client/src/components/ui/` - shadcn/ui base components
 - `client/src/hooks/use-auth.ts` - Authentication hook
 - `client/src/hooks/use-upload.ts` - File upload hook
@@ -30,11 +31,12 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `server/replit_integrations/object_storage/` - App Storage integration
 - `shared/schema.ts` - Drizzle ORM schema definitions
 - `shared/models/auth.ts` - Auth-related schema (users, sessions)
+- `attached_assets/THE_UNIVERSAL_MANUSCRIPT_ARCHITECTURE_(UMA)*.pdf` - UMA knowledge base
 
 ## Database Schema
 - `users` - User profiles with auth info (email, name, profile image), research level, field, learning mode, XP, level, streak
 - `sessions` - Session storage for auth (mandatory for Replit Auth)
-- `manuscripts` - Manuscripts with stage, help types, title, file_key, preview_text, extraction_status, readiness score
+- `manuscripts` - Manuscripts with stage, help types, title, file_key, full_text, preview_text, extraction_status, analysis_json (JSONB), analysis_status, readiness_score
 
 ## Key Routes
 - `GET /api/auth/user` - Get current authenticated user
@@ -42,18 +44,31 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `GET /api/users/me` - Get current user details
 - `DELETE /api/users/me` - Delete current user and all data
 - `GET /api/manuscripts` - Get current user's manuscripts
+- `GET /api/manuscripts/:id` - Get single manuscript (with ownership check)
 - `POST /api/manuscripts` - Create manuscript
 - `POST /api/manuscripts/:id/extract` - Extract text from uploaded manuscript file
 - `POST /api/manuscripts/:id/paste-text` - Save pasted manuscript text directly
+- `POST /api/manuscripts/:id/analyze` - Run AI analysis using OpenAI + UMA framework
 - `POST /api/uploads/request-url` - Get presigned URL for file upload (max 50MB)
 
 ## User Flow
-1. Welcome screen → Sign In (Replit Auth)
-2. Profile Setup (3 steps): Research Level → Primary Field → Learning Mode
+1. Welcome screen -> Sign In (Replit Auth)
+2. Profile Setup (3 steps): Research Level -> Primary Field -> Learning Mode
 3. Dashboard with gamification stats, user profile info, sign out
-4. New Manuscript flow (3 steps): Stage → Help Types → Upload or Paste
-5. File upload (up to 50MB) → Object Storage → Text extraction (PDF/DOCX/TXT) → Preview text saved
-6. Or paste manuscript sections directly → Text saved as preview
+4. New Manuscript flow (3 steps): Stage -> Help Types -> Upload or Paste
+5. File upload (up to 50MB) -> Object Storage -> Text extraction (PDF/DOCX/TXT) -> Full text + preview saved
+6. Or paste manuscript sections directly -> Text saved
+7. Dashboard -> Click manuscript -> Split-view workspace (/manuscript/:id)
+8. Workspace: Left (60%) manuscript text, Right (40%) tabbed analysis panel
+9. Run SAGE Analysis -> OpenAI analyzes using UMA -> Results stored in DB
+
+## AI Analysis (UMA Framework)
+- Uses OpenAI GPT-4o with UMA system prompt
+- Checks for Structured 5-Move Abstract (Hook, Gap, Approach, Findings, Impact)
+- Checks for Zero-I Perspective (no I/we/our/us/my)
+- Returns structured JSON: readinessScore, criticalIssues, detailedFeedback, actionItems, abstractAnalysis, zeroIPerspective, learnLinks
+- Analysis stored in manuscripts.analysis_json (JSONB)
+- Loaded from DB on subsequent visits (no re-analysis needed)
 
 ## State Management
 - Authentication managed via Replit Auth sessions (server-side)
@@ -62,9 +77,9 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - No sidebar needed - centered card-based layout
 
 ## File Upload Pipeline
-1. Client selects PDF/DOCX/TXT file (max 10MB)
+1. Client selects PDF/DOCX/TXT file (max 50MB)
 2. Client requests presigned URL from backend
 3. Client uploads file directly to GCS via presigned URL
 4. Backend receives file_key, creates manuscript record
 5. Backend extracts text using pdf-parse (PDF) or mammoth (DOCX)
-6. First 500 chars saved as preview_text for dashboard display
+6. Full text stored in full_text column, first 500 chars in preview_text

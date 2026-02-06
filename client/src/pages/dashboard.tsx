@@ -251,6 +251,7 @@ export default function Dashboard() {
                     <div
                       key={m.id}
                       className="flex items-center justify-between p-3 rounded-md border border-border hover-elevate cursor-pointer"
+                      onClick={() => navigate(`/manuscript/${m.id}`)}
                       data-testid={`card-manuscript-${m.id}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">

@@ -8,6 +8,7 @@ import Welcome from "@/pages/welcome";
 import ProfileSetup from "@/pages/profile-setup";
 import Dashboard from "@/pages/dashboard";
 import NewManuscript from "@/pages/new-manuscript";
+import ManuscriptWorkspace from "@/pages/manuscript-workspace";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/setup" component={ProfileSetup} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/manuscript/new" component={NewManuscript} />
+      <Route path="/manuscript/:id" component={ManuscriptWorkspace} />
       <Route component={NotFound} />
     </Switch>
   );
