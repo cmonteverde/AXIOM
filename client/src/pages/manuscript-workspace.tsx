@@ -307,8 +307,10 @@ function AnalysisOptionsDialog({
               checked={selected.has("Comprehensive Review")}
               onCheckedChange={() => toggleType("Comprehensive Review")}
             />
-            <span className="text-xs font-semibold">Comprehensive Review</span>
-            <span className="text-xs text-muted-foreground ml-auto">All areas</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-semibold">Comprehensive Review</span>
+              <p className="text-xs text-muted-foreground mt-0.5">All areas. May take a few minutes for longer manuscripts.</p>
+            </div>
           </label>
           <div className="grid grid-cols-2 gap-2">
             {SECTION_HELP_TYPES.map((type) => (
@@ -509,7 +511,7 @@ export default function ManuscriptWorkspace() {
 
   const analysis = manuscript.analysisJson as AnalysisData | null;
   const hasAnalysis = manuscript.analysisStatus === "completed" && analysis;
-  const isAnalyzing = manuscript.analysisStatus === "processing" || analyzeMutation.isPending;
+  const isAnalyzing = analyzeMutation.isPending;
   const manuscriptText = manuscript.fullText || manuscript.previewText || "";
   const isReExtracting = extractMutation.isPending;
 

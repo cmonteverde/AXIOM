@@ -66,13 +66,16 @@ export async function registerRoutes(
 
   app.get("/api/manuscripts/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const manuscript = await storage.getManuscript(req.params.id);
+      let manuscript = await storage.getManuscript(req.params.id);
       if (!manuscript) {
         return res.status(404).json({ message: "Manuscript not found" });
       }
       const userId = req.user.claims.sub;
       if (manuscript.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
+      }
+      if (manuscript.analysisStatus === "processing" && !manuscript.analysisJson) {
+        manuscript = (await storage.updateManuscriptAnalysis(manuscript.id, null, "none")) || manuscript;
       }
       return res.json(manuscript);
     } catch (error: any) {
