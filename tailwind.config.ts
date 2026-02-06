@@ -76,14 +76,14 @@ export default {
           border: "var(--sidebar-accent-border)"
         },
         sage: {
-          DEFAULT: "#9EBFA6",
-          light: "#d4e5d8",
-          dark: "#7a9f83",
+          DEFAULT: "#4ADE80",
+          light: "#BBF7D0",
+          dark: "#166534",
         },
         gold: {
-          DEFAULT: "#F0C861",
-          light: "#f7e0a0",
-          dark: "#d4a93a",
+          DEFAULT: "#FACC15",
+          light: "#FEF08A",
+          dark: "#854D0E",
         },
         status: {
           online: "rgb(34 197 94)",
