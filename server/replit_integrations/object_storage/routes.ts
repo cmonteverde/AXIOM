@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "../auth";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -24,7 +24,7 @@ export function registerObjectStorageRoutes(app: Express): void {
 
       if (size && size > MAX_FILE_SIZE) {
         return res.status(400).json({
-          error: "File too large. Maximum size is 10MB.",
+          error: "File too large. Maximum size is 50MB.",
         });
       }
 
