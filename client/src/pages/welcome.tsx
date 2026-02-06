@@ -11,7 +11,7 @@ export default function Welcome() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-lg p-8 border-2 border-primary/20" style={{ borderStyle: "dashed" }}>
         <div className="flex flex-col items-center text-center">
-          <img src={sageLogoPath} alt="SAGE Logo" className="w-24 h-24 mb-4 object-contain" />
+          <img src={sageLogoPath} alt="SAGE Logo" className="w-48 h-48 mb-6 object-contain" />
 
           <h1 className="text-3xl font-bold tracking-tight mb-1 text-primary" data-testid="text-welcome-title">
             Welcome to SAGE
