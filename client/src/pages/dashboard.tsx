@@ -38,6 +38,8 @@ function DeleteAllDataButton() {
     },
   });
 
+  const [showDangerZone, setShowDangerZone] = useState(false);
+
   const startHold = useCallback(() => {
     setIsHolding(true);
     startTime.current = Date.now();
@@ -65,11 +67,12 @@ function DeleteAllDataButton() {
   }, []);
 
   return (
-    <div className="space-y-2">
+    <div className="relative group">
       <button
+        onMouseEnter={() => setShowDangerZone(true)}
+        onMouseLeave={() => setShowDangerZone(false)}
         onMouseDown={startHold}
         onMouseUp={stopHold}
-        onMouseLeave={stopHold}
         onTouchStart={startHold}
         onTouchEnd={stopHold}
         className="flex items-center gap-1.5 text-sm text-destructive hover:text-destructive/80 transition-colors select-none"
@@ -78,15 +81,20 @@ function DeleteAllDataButton() {
         <Trash2 className="w-4 h-4" />
         {isHolding ? `Hold to Delete... ${Math.round(progress)}%` : "Delete All Data"}
       </button>
-      <div className="bg-red-900/90 text-white rounded-md p-3 text-xs">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-gold shrink-0" />
-          <div>
-            <p className="font-bold">DANGER ZONE</p>
-            <p>Hold button for 3 seconds to permanently delete ALL data. This cannot be undone!</p>
+      
+      {showDangerZone && (
+        <div className="absolute top-full right-0 mt-2 z-50 w-64 animate-in fade-in slide-in-from-top-1">
+          <div className="bg-red-900/95 backdrop-blur-sm text-white rounded-md p-3 text-xs shadow-lg border border-red-700/50">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-gold shrink-0" />
+              <div>
+                <p className="font-bold">DANGER ZONE</p>
+                <p>Hold button for 3 seconds to permanently delete ALL data. This cannot be undone!</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
