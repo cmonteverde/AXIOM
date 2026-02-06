@@ -39,20 +39,27 @@ import {
   X,
 } from "lucide-react";
 
-const ALL_HELP_TYPES = [
-  "Comprehensive Review",
+const SECTION_HELP_TYPES = [
+  "Title",
+  "Abstract",
+  "Introduction",
+  "Methods",
+  "Results",
+  "Discussion",
+  "Limitations",
+  "Conclusions & Recommendations",
+  "Keywords",
   "Structural Analysis",
   "Language & Clarity",
-  "Reference Management",
-  "Keywords",
-  "Journal Selection",
-  "Methods",
   "Statistics",
+  "Reference Management",
+  "Ethics",
+  "Journal Selection",
   "Cover Letter",
   "Reviewer Response",
-  "Abstract",
-  "Ethics",
 ];
+
+const ALL_HELP_TYPES = ["Comprehensive Review", ...SECTION_HELP_TYPES];
 
 interface ScoreCategory {
   score: number;
@@ -242,12 +249,25 @@ function AnalysisOptionsDialog({
   }, [open, defaultHelpTypes]);
 
   const toggleType = (type: string) => {
+    if (type === "Comprehensive Review") {
+      setSelected((prev) => {
+        if (prev.has("Comprehensive Review")) {
+          return new Set();
+        }
+        return new Set(ALL_HELP_TYPES);
+      });
+      return;
+    }
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(type)) {
         next.delete(type);
+        next.delete("Comprehensive Review");
       } else {
         next.add(type);
+        if (SECTION_HELP_TYPES.every((t) => next.has(t))) {
+          next.add("Comprehensive Review");
+        }
       }
       return next;
     });
@@ -277,8 +297,21 @@ function AnalysisOptionsDialog({
               </Button>
             </div>
           </div>
+          <label
+            className={`flex items-center gap-2 p-2.5 rounded-md border cursor-pointer transition-colors mb-2 ${
+              selected.has("Comprehensive Review") ? "border-primary bg-primary/10" : "border-border"
+            }`}
+            data-testid="option-help-comprehensive-review"
+          >
+            <Checkbox
+              checked={selected.has("Comprehensive Review")}
+              onCheckedChange={() => toggleType("Comprehensive Review")}
+            />
+            <span className="text-xs font-semibold">Comprehensive Review</span>
+            <span className="text-xs text-muted-foreground ml-auto">All areas</span>
+          </label>
           <div className="grid grid-cols-2 gap-2">
-            {ALL_HELP_TYPES.map((type) => (
+            {SECTION_HELP_TYPES.map((type) => (
               <label
                 key={type}
                 className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${

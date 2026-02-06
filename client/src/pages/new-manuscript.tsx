@@ -23,17 +23,23 @@ const STAGES = [
 
 const HELP_TYPES = [
   "Comprehensive Review",
+  "Title",
+  "Abstract",
+  "Introduction",
+  "Methods",
+  "Results",
+  "Discussion",
+  "Limitations",
+  "Conclusions & Recommendations",
+  "Keywords",
   "Structural Analysis",
   "Language & Clarity",
-  "Reference Management",
-  "Keywords",
-  "Journal Selection",
-  "Methods",
   "Statistics",
+  "Reference Management",
+  "Ethics",
+  "Journal Selection",
   "Cover Letter",
   "Reviewer Response",
-  "Abstract",
-  "Ethics",
 ];
 
 const ANALYSIS_STEPS_UPLOAD = [
@@ -82,11 +88,30 @@ export default function NewManuscript() {
 
   const progressWidth = `${(step / 3) * 100}%`;
 
+  const sectionTypes = HELP_TYPES.filter((t) => t !== "Comprehensive Review");
+
   const toggleHelp = (type: string) => {
-    if (everything) return;
-    setSelectedHelp((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
+    if (type === "Comprehensive Review") {
+      if (everything) {
+        setEverything(false);
+        setSelectedHelp([]);
+      } else {
+        setEverything(true);
+        setSelectedHelp(HELP_TYPES);
+      }
+      return;
+    }
+    setSelectedHelp((prev) => {
+      const next = prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type];
+      const allSectionsSelected = sectionTypes.every((t) => next.includes(t));
+      if (allSectionsSelected) {
+        setEverything(true);
+        return [...next, "Comprehensive Review"];
+      } else {
+        setEverything(false);
+        return next.filter((t) => t !== "Comprehensive Review");
+      }
+    });
   };
 
   const toggleEverything = () => {
@@ -316,22 +341,23 @@ export default function NewManuscript() {
             <h2 className="text-base font-semibold mb-4">What help do you need?</h2>
 
             <label
-              className={`flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-colors mb-4 ${
-                everything ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+              className={`flex items-center gap-2 p-3 rounded-md border cursor-pointer transition-colors text-sm mb-3 ${
+                everything
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/30"
               }`}
-              data-testid="option-help-everything"
+              data-testid="option-help-comprehensive-review"
             >
               <Checkbox
                 checked={everything}
-                onCheckedChange={() => toggleEverything()}
+                onCheckedChange={() => toggleHelp("Comprehensive Review")}
               />
-              <span className="text-sm font-medium">Everything (Comprehensive Review)</span>
+              <span className="font-semibold">Comprehensive Review</span>
+              <span className="text-xs text-muted-foreground ml-auto">All areas</span>
             </label>
 
-            <p className="text-xs text-muted-foreground mb-3">Or select specific:</p>
-
             <div className="grid grid-cols-2 gap-3">
-              {HELP_TYPES.map((type) => (
+              {sectionTypes.map((type) => (
                 <label
                   key={type}
                   className={`flex items-center gap-2 p-3 rounded-md border cursor-pointer transition-colors text-sm ${
@@ -344,7 +370,6 @@ export default function NewManuscript() {
                   <Checkbox
                     checked={selectedHelp.includes(type)}
                     onCheckedChange={() => toggleHelp(type)}
-                    disabled={everything}
                   />
                   <span>{type}</span>
                 </label>
