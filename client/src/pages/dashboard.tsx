@@ -126,7 +126,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto p-4 pb-12">
+      <div className="max-w-[90%] lg:max-w-6xl mx-auto p-4 pb-12">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => navigate("/")}
@@ -170,21 +170,21 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-gold/10 rounded-md p-3 text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Flame className="w-4 h-4 text-gold-dark" />
-                    <span className="text-lg font-bold text-gold-dark" data-testid="text-streak">{streak}</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gold/10 rounded-md p-6 text-center shadow-sm">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Flame className="w-6 h-6 text-gold-dark" />
+                    <span className="text-3xl font-bold text-gold-dark" data-testid="text-streak">{streak}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Day Streak</p>
+                  <p className="text-sm font-medium text-muted-foreground">Day Streak</p>
                 </div>
-                <div className="bg-sage/10 rounded-md p-3 text-center">
-                  <span className="text-lg font-bold text-sage-dark" data-testid="text-achievements">0/50</span>
-                  <p className="text-xs text-muted-foreground">Achievements</p>
+                <div className="bg-sage/10 rounded-md p-6 text-center shadow-sm">
+                  <span className="text-3xl font-bold text-sage-dark" data-testid="text-achievements">0/50</span>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">Achievements</p>
                 </div>
-                <div className="bg-primary/5 rounded-md p-3 text-center">
-                  <span className="text-lg font-bold text-primary" data-testid="text-manuscript-count">{manuscripts.length}</span>
-                  <p className="text-xs text-muted-foreground">Manuscripts</p>
+                <div className="bg-primary/5 rounded-md p-6 text-center shadow-sm">
+                  <span className="text-3xl font-bold text-primary" data-testid="text-manuscript-count">{manuscripts.length}</span>
+                  <p className="text-sm font-medium text-muted-foreground mt-2">Manuscripts</p>
                 </div>
               </div>
             </Card>
