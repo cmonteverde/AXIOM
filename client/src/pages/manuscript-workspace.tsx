@@ -9,6 +9,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
@@ -25,11 +33,46 @@ import {
   BarChart3,
   GraduationCap,
   RefreshCw,
+  Info,
+  ChevronDown,
+  ChevronRight,
+  X,
 } from "lucide-react";
+
+const ALL_HELP_TYPES = [
+  "Comprehensive Review",
+  "Structural Analysis",
+  "Language & Clarity",
+  "Reference Management",
+  "Keywords",
+  "Journal Selection",
+  "Methods",
+  "Statistics",
+  "Cover Letter",
+  "Reviewer Response",
+  "Abstract",
+  "Ethics",
+];
+
+interface ScoreCategory {
+  score: number;
+  maxWeight: number;
+  notes: string;
+}
 
 interface AnalysisData {
   readinessScore: number;
   summary: string;
+  scoreBreakdown?: {
+    titleAndKeywords?: ScoreCategory;
+    abstract?: ScoreCategory;
+    introduction?: ScoreCategory;
+    methods?: ScoreCategory;
+    results?: ScoreCategory;
+    discussion?: ScoreCategory;
+    writingQuality?: ScoreCategory;
+    zeroIPerspective?: ScoreCategory;
+  };
   criticalIssues: Array<{
     title: string;
     description: string;
@@ -45,6 +88,7 @@ interface AnalysisData {
   actionItems: Array<{
     task: string;
     priority: "high" | "medium" | "low";
+    section?: string;
     completed: boolean;
   }>;
   abstractAnalysis: {
@@ -113,6 +157,26 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+function ScoreBar({ label, score, weight }: { label: string; score: number; weight: number }) {
+  const color =
+    score >= 75
+      ? "bg-sage"
+      : score >= 50
+        ? "bg-gold-dark"
+        : "bg-destructive";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="text-foreground">{label}</span>
+        <span className="text-muted-foreground">{score}/100 ({weight}%)</span>
+      </div>
+      <div className="w-full h-2 rounded-full bg-muted/30">
+        <div className={`h-2 rounded-full ${color} transition-all duration-500`} style={{ width: `${score}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function SeverityBadge({ severity }: { severity: string }) {
   const variant =
     severity === "high"
@@ -156,12 +220,160 @@ function FiveMoveCheck({ label, passed }: { label: string; passed: boolean }) {
   );
 }
 
+function AnalysisOptionsDialog({
+  open,
+  onOpenChange,
+  defaultHelpTypes,
+  onConfirm,
+  isAnalyzing,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultHelpTypes: string[];
+  onConfirm: (helpTypes: string[]) => void;
+  isAnalyzing: boolean;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(defaultHelpTypes));
+
+  useEffect(() => {
+    if (open) {
+      setSelected(new Set(defaultHelpTypes));
+    }
+  }, [open, defaultHelpTypes]);
+
+  const toggleType = (type: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(ALL_HELP_TYPES));
+  const clearAll = () => setSelected(new Set());
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Choose Analysis Focus</DialogTitle>
+          <DialogDescription>
+            Select which areas you want SAGE to focus on during analysis. More focus areas = more comprehensive feedback.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-3">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={selectAll} data-testid="button-select-all">
+                Select All
+              </Button>
+              <Button variant="outline" size="sm" onClick={clearAll} data-testid="button-clear-all">
+                Clear
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {ALL_HELP_TYPES.map((type) => (
+              <label
+                key={type}
+                className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors ${
+                  selected.has(type) ? "border-primary bg-primary/5" : "border-border"
+                }`}
+                data-testid={`option-help-${type.toLowerCase().replace(/[^a-z]/g, "-")}`}
+              >
+                <Checkbox
+                  checked={selected.has(type)}
+                  onCheckedChange={() => toggleType(type)}
+                />
+                <span className="text-xs">{type}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-analysis">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => onConfirm(Array.from(selected))}
+            disabled={selected.size === 0 || isAnalyzing}
+            data-testid="button-confirm-analysis"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Run Analysis
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<AnalysisData["scoreBreakdown"]>; onClose: () => void }) {
+  const categories = [
+    { key: "titleAndKeywords", label: "Title & Keywords", data: breakdown.titleAndKeywords },
+    { key: "abstract", label: "Abstract", data: breakdown.abstract },
+    { key: "introduction", label: "Introduction", data: breakdown.introduction },
+    { key: "methods", label: "Methods", data: breakdown.methods },
+    { key: "results", label: "Results", data: breakdown.results },
+    { key: "discussion", label: "Discussion", data: breakdown.discussion },
+    { key: "writingQuality", label: "Writing Quality", data: breakdown.writingQuality },
+    { key: "zeroIPerspective", label: "Zero-I Perspective", data: breakdown.zeroIPerspective },
+  ].filter((c) => c.data);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-semibold flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-primary" />
+          Score Breakdown
+        </h4>
+        <Button variant="outline" size="sm" onClick={onClose} data-testid="button-close-breakdown">
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Your readiness score is a weighted average across these categories. Each category is scored 0-100 and weighted by its importance to publication readiness.
+      </p>
+      <div className="space-y-3">
+        {categories.map(({ key, label, data }) => (
+          <div key={key}>
+            <ScoreBar label={label} score={data!.score} weight={data!.maxWeight} />
+            {data!.notes && (
+              <p className="text-xs text-muted-foreground mt-1 pl-1">{data!.notes}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ManuscriptWorkspace() {
   const [, navigate] = useLocation();
   const [matched, params] = useRoute("/manuscript/:id");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [feedbackFilter, setFeedbackFilter] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [extractionAttempted, setExtractionAttempted] = useState(false);
 
   const manuscriptId = params?.id;
 
@@ -176,15 +388,30 @@ export default function ManuscriptWorkspace() {
     enabled: !!manuscriptId && isAuthenticated,
   });
 
-  const analyzeMutation = useMutation({
+  const extractMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`);
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/extract`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
+      toast({ title: "Text Extracted", description: "Full manuscript text has been loaded." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Extraction Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const analyzeMutation = useMutation({
+    mutationFn: async (helpTypes: string[]) => {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`, { helpTypes });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
-      toast({ title: "Analysis Complete", description: "Your manuscript has been reviewed by SAGE." });
+      setShowAnalysisDialog(false);
+      toast({ title: "Analysis Complete", description: "SAGE has completed a comprehensive review of your manuscript." });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -206,6 +433,19 @@ export default function ManuscriptWorkspace() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (
+      manuscript &&
+      !manuscript.fullText &&
+      manuscript.fileKey &&
+      !extractionAttempted &&
+      !extractMutation.isPending
+    ) {
+      setExtractionAttempted(true);
+      extractMutation.mutate();
+    }
+  }, [manuscript?.id, manuscript?.fullText, manuscript?.fileKey, extractionAttempted]);
 
   if (authLoading || isLoading) {
     return (
@@ -238,6 +478,39 @@ export default function ManuscriptWorkspace() {
   const hasAnalysis = manuscript.analysisStatus === "completed" && analysis;
   const isAnalyzing = manuscript.analysisStatus === "processing" || analyzeMutation.isPending;
   const manuscriptText = manuscript.fullText || manuscript.previewText || "";
+  const isReExtracting = extractMutation.isPending;
+
+  const feedbackSections = hasAnalysis
+    ? Array.from(new Set(analysis.detailedFeedback.map((f) => f.section)))
+    : [];
+
+  const actionSections = hasAnalysis
+    ? Array.from(new Set(analysis.actionItems.filter((a) => a.section).map((a) => a.section!)))
+    : [];
+
+  const filteredFeedback = hasAnalysis
+    ? feedbackFilter
+      ? analysis.detailedFeedback.filter((f) => f.section === feedbackFilter)
+      : analysis.detailedFeedback
+    : [];
+
+  const filteredActions = hasAnalysis
+    ? actionFilter
+      ? analysis.actionItems.filter((a) => a.section === actionFilter)
+      : analysis.actionItems
+    : [];
+
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -261,52 +534,59 @@ export default function ManuscriptWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasAnalysis && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => analyzeMutation.mutate()}
-                disabled={isAnalyzing}
-                data-testid="button-reanalyze"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isAnalyzing ? "animate-spin" : ""}`} />
-                Re-analyze
-              </Button>
-            )}
-            {!hasAnalysis && (
-              <Button
-                onClick={() => analyzeMutation.mutate()}
-                disabled={isAnalyzing || !manuscriptText}
-                data-testid="button-run-analysis"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Run SAGE Analysis
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              variant={hasAnalysis ? "outline" : "default"}
+              size="sm"
+              onClick={() => setShowAnalysisDialog(true)}
+              disabled={isAnalyzing || !manuscriptText}
+              data-testid="button-run-analysis"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : hasAnalysis ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Re-analyze
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Run SAGE Analysis
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
+
+      <AnalysisOptionsDialog
+        open={showAnalysisDialog}
+        onOpenChange={setShowAnalysisDialog}
+        defaultHelpTypes={manuscript.helpTypes || ALL_HELP_TYPES}
+        onConfirm={(helpTypes) => analyzeMutation.mutate(helpTypes)}
+        isAnalyzing={analyzeMutation.isPending}
+      />
 
       <div className="max-w-[95%] mx-auto p-4">
         <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
           <div className="w-full lg:w-[60%]">
             <Card className="h-full flex flex-col">
-              <div className="p-4 border-b flex items-center gap-2">
+              <div className="p-4 border-b flex items-center gap-2 flex-wrap">
                 <BookOpen className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold">Manuscript Content</h2>
                 {manuscriptText && (
                   <span className="text-xs text-muted-foreground ml-auto">
                     {manuscriptText.length.toLocaleString()} characters
                   </span>
+                )}
+                {isReExtracting && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Loading full text...
+                  </Badge>
                 )}
               </div>
               <ScrollArea className="flex-1 p-4" style={{ height: "calc(100vh - 180px)" }}>
@@ -321,6 +601,25 @@ export default function ManuscriptWorkspace() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Upload a file or paste text to get started
                     </p>
+                    {manuscript.fileKey && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => extractMutation.mutate()}
+                        disabled={extractMutation.isPending}
+                        data-testid="button-extract-text"
+                      >
+                        {extractMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Extracting...
+                          </>
+                        ) : (
+                          "Extract Text from File"
+                        )}
+                      </Button>
+                    )}
                   </div>
                 )}
               </ScrollArea>
@@ -336,9 +635,9 @@ export default function ManuscriptWorkspace() {
                   </div>
                   <h3 className="text-lg font-semibold text-primary mb-2">SAGE is Analyzing</h3>
                   <p className="text-sm text-muted-foreground">
-                    Reviewing your manuscript against the Universal Manuscript Architecture...
+                    Performing comprehensive section-by-section review using UMA framework...
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">This may take 15-30 seconds</p>
+                  <p className="text-xs text-muted-foreground mt-2">This may take 30-60 seconds for a thorough analysis</p>
                 </div>
               </Card>
             ) : !hasAnalysis ? (
@@ -347,10 +646,10 @@ export default function ManuscriptWorkspace() {
                   <Sparkles className="w-12 h-12 text-primary/30 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Ready to Analyze</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Click "Run SAGE Analysis" to get AI-powered feedback based on the Universal Manuscript Architecture.
+                    Click "Run SAGE Analysis" to get comprehensive, section-by-section feedback based on the Universal Manuscript Architecture.
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    SAGE will check for the Structured 5-Move Abstract, Zero-I Perspective, and more.
+                    SAGE will review every section, check for the Structured 5-Move Abstract, Zero-I Perspective, and provide detailed action items.
                   </p>
                 </div>
               </Card>
@@ -363,10 +662,10 @@ export default function ManuscriptWorkspace() {
                         Overview
                       </TabsTrigger>
                       <TabsTrigger value="feedback" className="flex-1 text-xs" data-testid="tab-feedback">
-                        Feedback
+                        Feedback ({analysis.detailedFeedback.length})
                       </TabsTrigger>
                       <TabsTrigger value="actions" className="flex-1 text-xs" data-testid="tab-actions">
-                        Actions
+                        Actions ({analysis.actionItems.length})
                       </TabsTrigger>
                       <TabsTrigger value="learn" className="flex-1 text-xs" data-testid="tab-learn">
                         Learn
@@ -381,7 +680,24 @@ export default function ManuscriptWorkspace() {
                           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Publication Readiness</h3>
                           <ScoreRing score={analysis.readinessScore} />
                           <p className="text-sm text-muted-foreground mt-3">{analysis.summary}</p>
+                          {analysis.scoreBreakdown && (
+                            <button
+                              onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
+                              className="text-xs text-primary mt-2 flex items-center gap-1 mx-auto transition-colors"
+                              data-testid="button-score-breakdown"
+                            >
+                              <Info className="w-3 h-3" />
+                              {showScoreBreakdown ? "Hide score breakdown" : "How is this score calculated?"}
+                            </button>
+                          )}
                         </div>
+
+                        {showScoreBreakdown && analysis.scoreBreakdown && (
+                          <ScoreBreakdownPanel
+                            breakdown={analysis.scoreBreakdown}
+                            onClose={() => setShowScoreBreakdown(false)}
+                          />
+                        )}
 
                         <div>
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -417,7 +733,7 @@ export default function ManuscriptWorkspace() {
                             </div>
                             {analysis.zeroIPerspective.violations.length > 0 && (
                               <ul className="space-y-1 mb-2">
-                                {analysis.zeroIPerspective.violations.slice(0, 5).map((v, i) => (
+                                {analysis.zeroIPerspective.violations.map((v, i) => (
                                   <li key={i} className="text-xs text-destructive flex items-start gap-1">
                                     <span className="shrink-0">&bull;</span>
                                     <span>{v}</span>
@@ -454,22 +770,79 @@ export default function ManuscriptWorkspace() {
 
                     <TabsContent value="feedback" className="p-4 mt-0">
                       <div className="space-y-3">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <ClipboardList className="w-4 h-4 text-primary" />
-                          Detailed Feedback
-                        </h3>
-                        {analysis.detailedFeedback.map((fb, i) => (
-                          <Card key={i} className="p-3">
-                            <Badge variant="outline" className="mb-2 text-xs">{fb.section}</Badge>
-                            <p className="text-sm font-medium mb-1">{fb.finding}</p>
-                            <p className="text-sm text-sage-dark mb-2">{fb.suggestion}</p>
-                            <div className="bg-primary/5 rounded-md p-2 border-l-2 border-primary">
-                              <p className="text-xs font-medium text-primary mb-0.5">Why it Matters (UMA)</p>
-                              <p className="text-xs text-muted-foreground">{fb.whyItMatters}</p>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <ClipboardList className="w-4 h-4 text-primary" />
+                            Section-by-Section Feedback
+                          </h3>
+                          <span className="text-xs text-muted-foreground">
+                            {filteredFeedback.length} items
+                          </span>
+                        </div>
+
+                        {feedbackSections.length > 1 && (
+                          <div className="flex flex-wrap gap-1">
+                            <Badge
+                              variant={feedbackFilter === null ? "default" : "outline"}
+                              className="cursor-pointer text-xs"
+                              onClick={() => setFeedbackFilter(null)}
+                              data-testid="filter-feedback-all"
+                            >
+                              All
+                            </Badge>
+                            {feedbackSections.map((section) => (
+                              <Badge
+                                key={section}
+                                variant={feedbackFilter === section ? "default" : "outline"}
+                                className="cursor-pointer text-xs"
+                                onClick={() => setFeedbackFilter(feedbackFilter === section ? null : section)}
+                                data-testid={`filter-feedback-${section.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                              >
+                                {section} ({analysis.detailedFeedback.filter((f) => f.section === section).length})
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {feedbackSections.map((section) => {
+                          const sectionItems = filteredFeedback.filter((f) => f.section === section);
+                          if (sectionItems.length === 0) return null;
+                          const isExpanded = expandedSections.has(`fb-${section}`) || feedbackFilter !== null;
+
+                          return (
+                            <div key={section}>
+                              {feedbackFilter === null && (
+                                <button
+                                  onClick={() => toggleSection(`fb-${section}`)}
+                                  className="flex items-center gap-2 w-full text-left py-2"
+                                  data-testid={`toggle-section-${section.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                  )}
+                                  <span className="text-sm font-medium">{section}</span>
+                                  <Badge variant="outline" className="text-xs ml-auto">{sectionItems.length}</Badge>
+                                </button>
+                              )}
+                              {(isExpanded || feedbackFilter !== null) && sectionItems.map((fb, i) => (
+                                <Card key={i} className="p-3 mb-2">
+                                  {feedbackFilter !== null && (
+                                    <Badge variant="outline" className="mb-2 text-xs">{fb.section}</Badge>
+                                  )}
+                                  <p className="text-sm font-medium mb-1">{fb.finding}</p>
+                                  <p className="text-sm text-sage-dark mb-2">{fb.suggestion}</p>
+                                  <div className="bg-primary/5 rounded-md p-2">
+                                    <p className="text-xs font-medium text-primary mb-0.5">Why it Matters (UMA)</p>
+                                    <p className="text-xs text-muted-foreground">{fb.whyItMatters}</p>
+                                  </div>
+                                </Card>
+                              ))}
                             </div>
-                          </Card>
-                        ))}
-                        {analysis.detailedFeedback.length === 0 && (
+                          );
+                        })}
+                        {filteredFeedback.length === 0 && (
                           <p className="text-sm text-muted-foreground text-center py-4">No detailed feedback available.</p>
                         )}
                       </div>
@@ -477,37 +850,68 @@ export default function ManuscriptWorkspace() {
 
                     <TabsContent value="actions" className="p-4 mt-0">
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <h3 className="text-sm font-semibold flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 text-primary" />
                             Action Items
                           </h3>
                           <span className="text-xs text-muted-foreground">
-                            {checkedItems.size}/{analysis.actionItems.length} done
+                            {checkedItems.size}/{filteredActions.length} done
                           </span>
                         </div>
-                        {analysis.actionItems.map((item, i) => (
-                          <div
-                            key={i}
-                            className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
-                              checkedItems.has(i) ? "bg-sage/5 border-sage/30" : "border-border"
-                            }`}
-                          >
-                            <Checkbox
-                              checked={checkedItems.has(i)}
-                              onCheckedChange={() => toggleActionItem(i)}
-                              className="mt-0.5"
-                              data-testid={`checkbox-action-${i}`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm ${checkedItems.has(i) ? "line-through text-muted-foreground" : ""}`}>
-                                {item.task}
-                              </p>
-                            </div>
-                            <PriorityBadge priority={item.priority} />
+
+                        {actionSections.length > 1 && (
+                          <div className="flex flex-wrap gap-1">
+                            <Badge
+                              variant={actionFilter === null ? "default" : "outline"}
+                              className="cursor-pointer text-xs"
+                              onClick={() => setActionFilter(null)}
+                              data-testid="filter-actions-all"
+                            >
+                              All ({analysis.actionItems.length})
+                            </Badge>
+                            {actionSections.map((section) => (
+                              <Badge
+                                key={section}
+                                variant={actionFilter === section ? "default" : "outline"}
+                                className="cursor-pointer text-xs"
+                                onClick={() => setActionFilter(actionFilter === section ? null : section)}
+                                data-testid={`filter-actions-${section.toLowerCase().replace(/[^a-z]/g, "-")}`}
+                              >
+                                {section}
+                              </Badge>
+                            ))}
                           </div>
-                        ))}
-                        {analysis.actionItems.length === 0 && (
+                        )}
+
+                        {filteredActions.map((item, i) => {
+                          const globalIndex = analysis.actionItems.indexOf(item);
+                          return (
+                            <div
+                              key={globalIndex}
+                              className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
+                                checkedItems.has(globalIndex) ? "bg-sage/5 border-sage/30" : "border-border"
+                              }`}
+                            >
+                              <Checkbox
+                                checked={checkedItems.has(globalIndex)}
+                                onCheckedChange={() => toggleActionItem(globalIndex)}
+                                className="mt-0.5"
+                                data-testid={`checkbox-action-${globalIndex}`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${checkedItems.has(globalIndex) ? "line-through text-muted-foreground" : ""}`}>
+                                  {item.task}
+                                </p>
+                                {item.section && (
+                                  <Badge variant="outline" className="text-xs mt-1">{item.section}</Badge>
+                                )}
+                              </div>
+                              <PriorityBadge priority={item.priority} />
+                            </div>
+                          );
+                        })}
+                        {filteredActions.length === 0 && (
                           <p className="text-sm text-muted-foreground text-center py-4">No action items.</p>
                         )}
                       </div>
@@ -517,8 +921,11 @@ export default function ManuscriptWorkspace() {
                       <div className="space-y-3">
                         <h3 className="text-sm font-semibold flex items-center gap-2">
                           <GraduationCap className="w-4 h-4 text-primary" />
-                          Learning Resources
+                          Learning Resources ({analysis.learnLinks.length})
                         </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Based on your manuscript's areas for improvement, here are UMA resources to strengthen your writing.
+                        </p>
                         {analysis.learnLinks.map((link, i) => (
                           <Card key={i} className="p-3 hover-elevate cursor-pointer" data-testid={`card-learn-${i}`}>
                             <div className="flex items-start gap-3">

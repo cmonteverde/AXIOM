@@ -66,9 +66,13 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - Uses OpenAI GPT-4o with UMA system prompt
 - Checks for Structured 5-Move Abstract (Hook, Gap, Approach, Findings, Impact)
 - Checks for Zero-I Perspective (no I/we/our/us/my)
-- Returns structured JSON: readinessScore, criticalIssues, detailedFeedback, actionItems, abstractAnalysis, zeroIPerspective, learnLinks
+- Returns structured JSON: readinessScore, scoreBreakdown (8 categories with weighted scores), criticalIssues, detailedFeedback, actionItems, abstractAnalysis, zeroIPerspective, learnLinks
+- Comprehensive section-by-section analysis: 15-30+ feedback items, 15-25 action items per analysis
+- Score breakdown shows weighted contributions: Title/Keywords (10%), Abstract (15%), Introduction (10%), Methods (15%), Results (15%), Discussion (15%), Writing Quality (10%), Zero-I (10%)
+- Analysis options dialog lets users select focus areas before each analysis
 - Analysis stored in manuscripts.analysis_json (JSONB)
 - Loaded from DB on subsequent visits (no re-analysis needed)
+- Auto-re-extraction triggers when fullText is null but fileKey exists (for legacy manuscripts)
 
 ## State Management
 - Authentication managed via Replit Auth sessions (server-side)
