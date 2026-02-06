@@ -2,14 +2,16 @@ import { useLocation } from "wouter";
 import { BookOpen, Target, Zap, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MouseFireworks } from "@/components/mouse-fireworks";
 import sageLogoPath from "@assets/SAGE_logo_1770411503546.png";
 
 export default function Welcome() {
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-lg p-8 border-2 border-primary/20" style={{ borderStyle: "dashed" }}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+      <MouseFireworks />
+      <Card className="w-full max-w-lg p-8 border-2 border-primary/20 bg-white/80 backdrop-blur-sm relative z-10" style={{ borderStyle: "dashed" }}>
         <div className="flex flex-col items-center text-center">
           <img src={sageLogoPath} alt="SAGE Logo" className="w-48 h-48 mb-6 object-contain" />
 
