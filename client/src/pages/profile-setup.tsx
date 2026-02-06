@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { isUnauthorizedError } from "@/lib/auth-utils";
 
 const RESEARCH_LEVELS = [
   "Undergraduate",
@@ -44,6 +47,7 @@ const LEARNING_MODES = [
 export default function ProfileSetup() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const [step, setStep] = useState(1);
   const [researchLevel, setResearchLevel] = useState("");
   const [otherResearchLevel, setOtherResearchLevel] = useState("");
@@ -51,20 +55,51 @@ export default function ProfileSetup() {
   const [otherPrimaryField, setOtherPrimaryField] = useState("");
   const [learningMode, setLearningMode] = useState("");
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
+    }
+  }, [isLoading, isAuthenticated]);
+
+  useEffect(() => {
+    if (user && user.researchLevel && user.primaryField && user.learningMode) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
   const createProfileMutation = useMutation({
     mutationFn: async (data: { researchLevel: string; primaryField: string; learningMode: string }) => {
-      const res = await apiRequest("POST", "/api/users", data);
+      const res = await apiRequest("POST", "/api/users/profile", data);
       return res.json();
     },
-    onSuccess: (data) => {
-      localStorage.setItem("sage_user_id", data.id);
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
       navigate("/dashboard");
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Session expired", description: "Redirecting to login...", variant: "destructive" });
+        setTimeout(() => { window.location.href = "/api/login"; }, 500);
+        return;
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-lg p-8">
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="h-2 w-full mb-6" />
+          <Skeleton className="h-12 w-full mb-3" />
+          <Skeleton className="h-12 w-full mb-3" />
+          <Skeleton className="h-12 w-full" />
+        </Card>
+      </div>
+    );
+  }
 
   const progressWidth = `${(step / 3) * 100}%`;
 

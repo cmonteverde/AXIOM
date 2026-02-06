@@ -5,9 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Trophy, FileText, Zap, BarChart3, Upload, ArrowLeft, Trash2, GraduationCap, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { isUnauthorizedError } from "@/lib/auth-utils";
+import { Flame, Trophy, FileText, Zap, BarChart3, Upload, Trash2, GraduationCap, AlertTriangle, LogOut } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { User, Manuscript } from "@shared/schema";
+import type { Manuscript } from "@shared/schema";
 
 function getLevelThreshold(level: number) {
   return level * 1000;
@@ -23,17 +25,17 @@ function DeleteAllDataButton() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const userId = localStorage.getItem("sage_user_id");
-      if (!userId) throw new Error("No user found");
-      await apiRequest("DELETE", `/api/users/${userId}`);
+      await apiRequest("DELETE", "/api/users/me");
     },
     onSuccess: () => {
-      localStorage.removeItem("sage_user_id");
       queryClient.clear();
-      navigate("/");
-      toast({ title: "All data deleted", description: "Your data has been permanently removed." });
+      window.location.href = "/api/logout";
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        window.location.href = "/api/login";
+        return;
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
@@ -70,7 +72,7 @@ function DeleteAllDataButton() {
     <div className="relative group">
       <button
         onMouseEnter={() => setShowDangerZone(true)}
-        onMouseLeave={() => setShowDangerZone(false)}
+        onMouseLeave={() => { setShowDangerZone(false); stopHold(); }}
         onMouseDown={startHold}
         onMouseUp={stopHold}
         onTouchStart={startHold}
@@ -101,49 +103,68 @@ function DeleteAllDataButton() {
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const userId = localStorage.getItem("sage_user_id");
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
-  const { data: user, isLoading: userLoading } = useQuery<User>({
-    queryKey: ["/api/users", userId],
-    enabled: !!userId,
-  });
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
+    }
+  }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    if (user && (!user.researchLevel || !user.primaryField || !user.learningMode)) {
+      navigate("/setup");
+    }
+  }, [user, navigate]);
 
   const { data: manuscripts = [], isLoading: manuscriptsLoading } = useQuery<Manuscript[]>({
-    queryKey: ["/api/manuscripts", userId],
-    enabled: !!userId,
+    queryKey: ["/api/manuscripts"],
+    enabled: isAuthenticated,
   });
 
-  if (!userId) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="p-8 text-center">
-          <p className="mb-4 text-muted-foreground">No profile found. Please set up your profile first.</p>
-          <Button onClick={() => navigate("/setup")} data-testid="button-go-setup">Get Started</Button>
+        <Card className="w-full max-w-lg p-8">
+          <Skeleton className="h-40 w-full rounded-md mb-4" />
+          <Skeleton className="h-60 w-full rounded-md" />
         </Card>
       </div>
     );
   }
 
-  const isLoading = userLoading || manuscriptsLoading;
-  const xp = user?.xp ?? 0;
-  const level = user?.level ?? 1;
-  const streak = user?.streak ?? 0;
+  if (!user) return null;
+
+  const isLoading = manuscriptsLoading;
+  const xp = user.xp ?? 0;
+  const level = user.level ?? 1;
+  const streak = user.streak ?? 0;
   const nextLevelXp = getLevelThreshold(level);
   const progressPct = nextLevelXp > 0 ? Math.min((xp / nextLevelXp) * 100, 100) : 0;
   const activeManuscripts = manuscripts.filter((m) => m.status === "active");
+  const displayName = user.firstName || user.email || "Researcher";
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[90%] lg:max-w-6xl mx-auto p-4 pb-12">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate("/")}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            data-testid="link-home"
-          >
-            ← Home
-          </button>
-          <DeleteAllDataButton />
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            {user.profileImageUrl && (
+              <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full" />
+            )}
+            <span className="text-sm text-muted-foreground">Welcome, {displayName}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <DeleteAllDataButton />
+            <a
+              href="/api/logout"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-logout"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </a>
+          </div>
         </div>
 
         {isLoading ? (
@@ -164,7 +185,7 @@ export default function Dashboard() {
                   <span className="text-xl font-bold text-primary" data-testid="text-xp">{xp} XP</span>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">Welcome back!</p>
+              <p className="text-sm text-muted-foreground mb-2">Welcome back, {displayName}!</p>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>Progress to Level {level + 1}</span>
@@ -232,16 +253,24 @@ export default function Dashboard() {
                       className="flex items-center justify-between p-3 rounded-md border border-border hover-elevate cursor-pointer"
                       data-testid={`card-manuscript-${m.id}`}
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">{m.title || "Untitled"}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="w-5 h-5 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{m.title || "Untitled"}</p>
                           <p className="text-xs text-muted-foreground">{m.stage}</p>
+                          {m.previewText && (
+                            <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">{m.previewText}</p>
+                          )}
                         </div>
                       </div>
-                      {m.readinessScore !== null && (
-                        <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {m.extractionStatus === "processing" && (
+                          <span className="text-xs text-primary">Extracting...</span>
+                        )}
+                        {m.readinessScore !== null && (
+                          <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -1,16 +1,17 @@
-import { type User, type InsertUser, type Manuscript, type InsertManuscript, users, manuscripts } from "@shared/schema";
+import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, users, manuscripts } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  deleteUser(id: string): Promise<void>;
+  updateUserProfile(id: string, profile: ProfileSetup): Promise<User | undefined>;
   updateUserXP(id: string, xp: number, level: number): Promise<User | undefined>;
   updateUserStreak(id: string, streak: number, lastActiveDate: string): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
   getManuscriptsByUserId(userId: string): Promise<Manuscript[]>;
   getManuscript(id: string): Promise<Manuscript | undefined>;
   createManuscript(manuscript: InsertManuscript): Promise<Manuscript>;
+  updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string): Promise<Manuscript | undefined>;
   deleteManuscriptsByUserId(userId: string): Promise<void>;
 }
 
@@ -20,14 +21,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+  async updateUserProfile(id: string, profile: ProfileSetup): Promise<User | undefined> {
+    const [user] = await db.update(users).set({
+      researchLevel: profile.researchLevel,
+      primaryField: profile.primaryField,
+      learningMode: profile.learningMode,
+      updatedAt: new Date(),
+    }).where(eq(users.id, id)).returning();
     return user;
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    await db.delete(manuscripts).where(eq(manuscripts.userId, id));
-    await db.delete(users).where(eq(users.id, id));
   }
 
   async updateUserXP(id: string, xp: number, level: number): Promise<User | undefined> {
@@ -38,6 +39,11 @@ export class DatabaseStorage implements IStorage {
   async updateUserStreak(id: string, streak: number, lastActiveDate: string): Promise<User | undefined> {
     const [user] = await db.update(users).set({ streak, lastActiveDate }).where(eq(users.id, id)).returning();
     return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(manuscripts).where(eq(manuscripts.userId, id));
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getManuscriptsByUserId(userId: string): Promise<Manuscript[]> {
@@ -51,6 +57,11 @@ export class DatabaseStorage implements IStorage {
 
   async createManuscript(insertManuscript: InsertManuscript): Promise<Manuscript> {
     const [manuscript] = await db.insert(manuscripts).values(insertManuscript).returning();
+    return manuscript;
+  }
+
+  async updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.update(manuscripts).set({ previewText, extractionStatus }).where(eq(manuscripts.id, id)).returning();
     return manuscript;
   }
 

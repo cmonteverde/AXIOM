@@ -1,13 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useUpload } from "@/hooks/use-upload";
+import { isUnauthorizedError } from "@/lib/auth-utils";
+import { Upload, CheckCircle2, Loader2, FileText, X } from "lucide-react";
 
 const STAGES = [
   { value: "planning", label: "Planning & Design", description: "Still developing idea" },
@@ -33,25 +36,39 @@ const HELP_TYPES = [
 ];
 
 const ANALYSIS_STEPS = [
-  "Checking structure and organization...",
-  "Analyzing language and clarity...",
-  "Reviewing citations and references...",
-  "Assessing methodological rigor...",
+  "Uploading file to secure storage...",
+  "Extracting text content...",
+  "Analyzing structure and organization...",
+  "Generating manuscript preview...",
 ];
 
 export default function NewManuscript() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [step, setStep] = useState(1);
   const [stage, setStage] = useState("");
   const [selectedHelp, setSelectedHelp] = useState<string[]>([]);
   const [everything, setEverything] = useState(false);
   const [title, setTitle] = useState("");
   const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [analysisStep, setAnalysisStep] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
+    }
+  }, [authLoading, isAuthenticated]);
+
+  const { uploadFile, isUploading } = useUpload({
+    onError: (error) => {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    },
+  });
 
   const progressWidth = `${(step / 3) * 100}%`;
 
@@ -73,71 +90,103 @@ export default function NewManuscript() {
   };
 
   const createManuscriptMutation = useMutation({
-    mutationFn: async (data: { userId: string; title: string | null; stage: string; helpTypes: string[]; fileName: string | null }) => {
+    mutationFn: async (data: { title: string | null; stage: string; helpTypes: string[]; fileName: string | null; fileKey: string | null }) => {
       const res = await apiRequest("POST", "/api/manuscripts", data);
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
-    },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        window.location.href = "/api/login";
+        return;
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setIsAnalyzing(false);
     },
   });
 
-  const handleStartAnalysis = () => {
-    const userId = localStorage.getItem("sage_user_id");
-    if (!userId) {
-      navigate("/setup");
-      return;
-    }
+  const extractMutation = useMutation({
+    mutationFn: async (manuscriptId: string) => {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/extract`);
+      return res.json();
+    },
+    onError: (error: Error) => {
+      console.error("Extraction error:", error);
+    },
+  });
+
+  const handleStartAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setCompletedSteps([]);
+    setAnalysisStep(0);
 
-    createManuscriptMutation.mutate({
-      userId,
-      title: title || null,
-      stage,
-      helpTypes: selectedHelp,
-      fileName: fileName || null,
-    });
+    let fileKey: string | null = null;
 
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 2;
-      setAnalysisProgress(Math.min(progress, 100));
+    if (selectedFile) {
+      setAnalysisStep(0);
+      setAnalysisProgress(10);
+      const uploadResult = await uploadFile(selectedFile);
+      if (uploadResult) {
+        fileKey = uploadResult.objectPath;
+      }
+      setAnalysisProgress(25);
+    }
 
-      if (progress >= 25 && !completedSteps.includes(0)) {
-        setCompletedSteps((prev) => [...prev, 0]);
-      }
-      if (progress >= 50 && !completedSteps.includes(1)) {
-        setCompletedSteps((prev) => [...prev, 1]);
-      }
-      if (progress >= 70 && !completedSteps.includes(2)) {
-        setCompletedSteps((prev) => [...prev, 2]);
-      }
-      if (progress >= 90 && !completedSteps.includes(3)) {
-        setCompletedSteps((prev) => [...prev, 3]);
+    setAnalysisStep(1);
+    setAnalysisProgress(35);
+
+    try {
+      const manuscript = await createManuscriptMutation.mutateAsync({
+        title: title || null,
+        stage,
+        helpTypes: selectedHelp,
+        fileName: fileName || null,
+        fileKey,
+      });
+
+      setAnalysisProgress(50);
+      setAnalysisStep(2);
+
+      if (fileKey) {
+        await extractMutation.mutateAsync(manuscript.id);
+        setAnalysisProgress(85);
+        setAnalysisStep(3);
+      } else {
+        setAnalysisProgress(85);
+        setAnalysisStep(3);
       }
 
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 500);
-      }
-    }, 60);
+      setAnalysisProgress(100);
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 800);
+    } catch (error) {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast({ title: "File too large", description: "Maximum file size is 10MB", variant: "destructive" });
+        return;
+      }
+      setSelectedFile(file);
       setFileName(file.name);
       if (!title) {
         setTitle(file.name.replace(/\.[^/.]+$/, ""));
       }
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFileName("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -162,7 +211,7 @@ export default function NewManuscript() {
 
           <div className="w-full h-3 bg-muted rounded-full mb-2 overflow-hidden">
             <div
-              className="h-full bg-sage rounded-full transition-all duration-300"
+              className="h-full bg-sage rounded-full transition-all duration-500"
               style={{ width: `${analysisProgress}%` }}
               data-testid="progress-analysis-bar"
             />
@@ -172,8 +221,8 @@ export default function NewManuscript() {
           <div className="text-left space-y-3">
             {ANALYSIS_STEPS.map((stepText, i) => (
               <div key={i} className="flex items-center gap-3">
-                <CheckCircle2 className={`w-5 h-5 shrink-0 ${analysisProgress >= (i + 1) * 25 ? "text-sage" : "text-muted-foreground/30"}`} />
-                <span className={`text-sm ${analysisProgress >= (i + 1) * 25 ? "text-foreground" : "text-muted-foreground/50"}`}>
+                <CheckCircle2 className={`w-5 h-5 shrink-0 ${analysisStep > i ? "text-sage" : analysisStep === i ? "text-primary" : "text-muted-foreground/30"}`} />
+                <span className={`text-sm ${analysisStep > i ? "text-foreground" : analysisStep === i ? "text-primary font-medium" : "text-muted-foreground/50"}`}>
                   {stepText}
                 </span>
               </div>
@@ -286,30 +335,51 @@ export default function NewManuscript() {
           <div>
             <h2 className="text-base font-semibold mb-4">Upload Your Manuscript</h2>
 
-            <div
-              className="border-2 border-dashed border-border rounded-md p-8 text-center mb-4 cursor-pointer hover:border-primary/30 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="dropzone-upload"
-            >
-              <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-1">
-                {fileName || "Drag & drop or click to browse"}
-              </p>
-              <p className="text-xs text-muted-foreground">Supported: PDF, DOCX, TXT</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.txt"
-                onChange={handleFileChange}
-                className="hidden"
-                data-testid="input-file"
-              />
-              {!fileName && (
+            {!selectedFile ? (
+              <div
+                className="border-2 border-dashed border-border rounded-md p-8 text-center mb-4 cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="dropzone-upload"
+              >
+                <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-1">
+                  Drag & drop or click to browse
+                </p>
+                <p className="text-xs text-muted-foreground">Supported: PDF, DOCX, TXT (max 10MB)</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  data-testid="input-file"
+                />
                 <Button className="mt-3" size="sm" data-testid="button-choose-file">
                   Choose File
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="border border-primary/30 bg-primary/5 rounded-md p-4 mb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="w-5 h-5 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{fileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={removeFile}
+                    className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    data-testid="button-remove-file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="text-sm font-medium mb-2 block">Or enter manuscript title:</label>
@@ -343,7 +413,7 @@ export default function NewManuscript() {
                 handleStartAnalysis();
               }
             }}
-            disabled={!canContinue()}
+            disabled={!canContinue() || isUploading}
             data-testid="button-manuscript-continue"
           >
             {step === 3 ? "Start Analysis" : "Continue →"}

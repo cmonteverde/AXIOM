@@ -3,10 +3,36 @@ import { BookOpen, Target, Zap, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MouseFireworks } from "@/components/mouse-fireworks";
+import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 import sageLogoPath from "@assets/SAGE_logo_1770411503546.png";
 
 export default function Welcome() {
   const [, navigate] = useLocation();
+  const { user, isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-lg p-8">
+          <Skeleton className="h-48 w-48 mx-auto mb-6 rounded-full" />
+          <Skeleton className="h-8 w-64 mx-auto mb-4" />
+          <Skeleton className="h-4 w-48 mx-auto mb-2" />
+          <Skeleton className="h-10 w-full mt-6" />
+        </Card>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user) {
+    if (user.researchLevel && user.primaryField && user.learningMode) {
+      navigate("/dashboard");
+      return null;
+    } else {
+      navigate("/setup");
+      return null;
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
@@ -74,23 +100,13 @@ export default function Welcome() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full">
-            <Button
-              data-testid="button-new-user"
-              onClick={() => navigate("/setup")}
-              className="w-full"
-            >
-              New User
-            </Button>
-            <Button
-              data-testid="button-returning"
-              variant="outline"
-              onClick={() => navigate("/dashboard")}
-              className="w-full border-primary text-primary"
-            >
-              Returning
-            </Button>
-          </div>
+          <Button
+            data-testid="button-login"
+            onClick={() => { window.location.href = "/api/login"; }}
+            className="w-full"
+          >
+            Sign In to Get Started
+          </Button>
         </div>
       </Card>
     </div>
