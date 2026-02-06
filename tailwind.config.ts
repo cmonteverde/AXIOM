@@ -75,6 +75,16 @@ export default {
           foreground: "hsl(var(--sidebar-accent-foreground) / <alpha-value>)",
           border: "var(--sidebar-accent-border)"
         },
+        sage: {
+          DEFAULT: "#9EBFA6",
+          light: "#d4e5d8",
+          dark: "#7a9f83",
+        },
+        gold: {
+          DEFAULT: "#F0C861",
+          light: "#f7e0a0",
+          dark: "#d4a93a",
+        },
         status: {
           online: "rgb(34 197 94)",
           away: "rgb(245 158 11)",

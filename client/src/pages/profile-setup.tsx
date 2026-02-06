@@ -81,16 +81,16 @@ export default function ProfileSetup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(260 60% 96%) 0%, hsl(260 40% 94%) 50%, hsl(260 60% 96%) 100%)" }}>
-      <Card className="w-full max-w-lg p-8 bg-white dark:bg-card">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-lg p-8">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-setup-title">Profile Setup</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-primary" data-testid="text-setup-title">Profile Setup</h1>
           <span className="text-sm text-muted-foreground" data-testid="text-step-indicator">Step {step}/3</span>
         </div>
 
         <div className="w-full h-2 bg-muted rounded-full mb-6 overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+            className="h-full bg-sage rounded-full transition-all duration-500 ease-out"
             style={{ width: progressWidth }}
             data-testid="progress-bar"
           />

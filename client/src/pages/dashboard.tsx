@@ -80,7 +80,7 @@ function DeleteAllDataButton() {
       </button>
       <div className="bg-red-900/90 text-white rounded-md p-3 text-xs">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-gold shrink-0" />
           <div>
             <p className="font-bold">DANGER ZONE</p>
             <p>Hold button for 3 seconds to permanently delete ALL data. This cannot be undone!</p>
@@ -107,8 +107,8 @@ export default function Dashboard() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(260 60% 96%) 0%, hsl(260 40% 94%) 50%, hsl(260 60% 96%) 100%)" }}>
-        <Card className="p-8 text-center bg-white dark:bg-card">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="p-8 text-center">
           <p className="mb-4 text-muted-foreground">No profile found. Please set up your profile first.</p>
           <Button onClick={() => navigate("/setup")} data-testid="button-go-setup">Get Started</Button>
         </Card>
@@ -125,7 +125,7 @@ export default function Dashboard() {
   const activeManuscripts = manuscripts.filter((m) => m.status === "active");
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(135deg, hsl(260 60% 96%) 0%, hsl(260 40% 94%) 50%, hsl(260 60% 96%) 100%)" }}>
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto p-4 pb-12">
         <div className="flex items-center justify-between mb-4">
           <button
@@ -145,11 +145,11 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <Card className="p-6 mb-6 bg-white dark:bg-card">
+            <Card className="p-6 mb-6">
               <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <GraduationCap className="w-6 h-6 text-foreground" />
-                  <h1 className="text-xl font-bold" data-testid="text-dashboard-title">SAGE Dashboard</h1>
+                  <GraduationCap className="w-6 h-6 text-primary" />
+                  <h1 className="text-xl font-bold text-primary" data-testid="text-dashboard-title">SAGE Dashboard</h1>
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground block">Level {level}</span>
@@ -164,32 +164,32 @@ export default function Dashboard() {
               </div>
               <div className="w-full h-2 bg-muted rounded-full mb-4 overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  className="h-full bg-sage rounded-full transition-all duration-500"
                   style={{ width: `${progressPct}%` }}
                   data-testid="progress-xp-bar"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-md p-3 text-center">
+                <div className="bg-gold/10 rounded-md p-3 text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    <span className="text-lg font-bold text-orange-500" data-testid="text-streak">{streak}</span>
+                    <Flame className="w-4 h-4 text-gold-dark" />
+                    <span className="text-lg font-bold text-gold-dark" data-testid="text-streak">{streak}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Day Streak</p>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-md p-3 text-center">
-                  <span className="text-lg font-bold text-green-600" data-testid="text-achievements">0/50</span>
+                <div className="bg-sage/10 rounded-md p-3 text-center">
+                  <span className="text-lg font-bold text-sage-dark" data-testid="text-achievements">0/50</span>
                   <p className="text-xs text-muted-foreground">Achievements</p>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-md p-3 text-center">
+                <div className="bg-primary/5 rounded-md p-3 text-center">
                   <span className="text-lg font-bold text-primary" data-testid="text-manuscript-count">{manuscripts.length}</span>
                   <p className="text-xs text-muted-foreground">Manuscripts</p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-6 mb-6 bg-white dark:bg-card border border-dashed border-primary/20">
+            <Card className="p-6 mb-6 border border-dashed border-primary/20">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-primary" />
@@ -232,7 +232,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       {m.readinessScore !== null && (
-                        <span className="text-sm font-semibold text-primary">{m.readinessScore}%</span>
+                        <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
                       )}
                     </div>
                   ))}
@@ -240,15 +240,15 @@ export default function Dashboard() {
               )}
             </Card>
 
-            <Card className="p-6 mb-6 bg-white dark:bg-card">
+            <Card className="p-6 mb-6">
               <div className="flex items-center gap-2 mb-4">
-                <Zap className="w-5 h-5 text-yellow-500" />
+                <Zap className="w-5 h-5 text-gold-dark" />
                 <h2 className="text-lg font-bold">Today's Challenges</h2>
               </div>
-              <div className="p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+              <div className="p-4 rounded-md bg-gold/10 border border-gold/30">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+                    <Zap className="w-5 h-5 text-gold-dark mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold">Citation Detective</p>
                       <p className="text-xs text-muted-foreground mb-1">Add 3 recent papers to strengthen lit review</p>
@@ -260,7 +260,7 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            <Card className="p-6 bg-white dark:bg-card">
+            <Card className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="w-5 h-5 text-primary" />
                 <h2 className="text-lg font-bold">This Week</h2>
@@ -268,7 +268,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {[
                   { label: "Sessions", value: "5", color: "" },
-                  { label: "XP Gained", value: "+420", color: "text-green-600" },
+                  { label: "XP Gained", value: "+420", color: "text-sage-dark" },
                   { label: "Global Rank", value: "#147", color: "text-primary" },
                   { label: "Field Rank", value: "#12", color: "text-primary" },
                 ].map((item) => (

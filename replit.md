@@ -8,7 +8,14 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Backend**: Node.js (Express)
 - **Database**: PostgreSQL (Drizzle ORM)
 - **Font**: Inter (sans-serif)
-- **Primary Color**: Purple (#7C3AED / hsl 262 83% 58%)
+- **Color Palette**:
+  - Primary Purple: #7C3AED (actions, headings, brand)
+  - Lavender Background: #F5F1FB (UI wash / page background)
+  - Sage Green: #9EBFA6 (learning, progress, success states)
+  - Insight Gold: #F0C861 (highlights only, used sparingly)
+  - Text Dark: #1F2937 (primary text)
+  - Muted Gray: #6B7280 (secondary text)
+- **Logo**: attached_assets/SAGE_logo_1770411503546.png (shown on welcome screen)
 
 ## Project Structure
 - `client/src/pages/` - Page components (welcome, profile-setup, dashboard, new-manuscript)

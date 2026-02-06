@@ -150,19 +150,19 @@ export default function NewManuscript() {
 
   if (isAnalyzing) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(260 60% 96%) 0%, hsl(260 40% 94%) 50%, hsl(260 60% 96%) 100%)" }}>
-        <Card className="w-full max-w-lg p-8 bg-white dark:bg-card text-center">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-lg p-8 text-center">
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
           </div>
-          <h2 className="text-xl font-bold mb-2" data-testid="text-analyzing-title">Analyzing Your Manuscript</h2>
+          <h2 className="text-xl font-bold mb-2 text-primary" data-testid="text-analyzing-title">Analyzing Your Manuscript</h2>
           <p className="text-sm text-muted-foreground mb-6">SAGE is reviewing your work...</p>
 
           <div className="w-full h-3 bg-muted rounded-full mb-2 overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
+              className="h-full bg-sage rounded-full transition-all duration-300"
               style={{ width: `${analysisProgress}%` }}
               data-testid="progress-analysis-bar"
             />
@@ -172,7 +172,7 @@ export default function NewManuscript() {
           <div className="text-left space-y-3">
             {ANALYSIS_STEPS.map((stepText, i) => (
               <div key={i} className="flex items-center gap-3">
-                <CheckCircle2 className={`w-5 h-5 shrink-0 ${analysisProgress >= (i + 1) * 25 ? "text-green-500" : "text-muted-foreground/30"}`} />
+                <CheckCircle2 className={`w-5 h-5 shrink-0 ${analysisProgress >= (i + 1) * 25 ? "text-sage" : "text-muted-foreground/30"}`} />
                 <span className={`text-sm ${analysisProgress >= (i + 1) * 25 ? "text-foreground" : "text-muted-foreground/50"}`}>
                   {stepText}
                 </span>
@@ -185,8 +185,8 @@ export default function NewManuscript() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, hsl(260 60% 96%) 0%, hsl(260 40% 94%) 50%, hsl(260 60% 96%) 100%)" }}>
-      <Card className="w-full max-w-lg p-8 bg-white dark:bg-card">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-lg p-8">
         <button
           onClick={() => navigate("/dashboard")}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 block"
@@ -196,13 +196,13 @@ export default function NewManuscript() {
         </button>
 
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-new-manuscript-title">New Manuscript</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-primary" data-testid="text-new-manuscript-title">New Manuscript</h1>
           <span className="text-sm text-muted-foreground">Step {step}/3</span>
         </div>
 
         <div className="w-full h-2 bg-muted rounded-full mb-6 overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+            className="h-full bg-sage rounded-full transition-all duration-500 ease-out"
             style={{ width: progressWidth }}
             data-testid="progress-manuscript-bar"
           />
