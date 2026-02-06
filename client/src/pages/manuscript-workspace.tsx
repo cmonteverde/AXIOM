@@ -439,13 +439,13 @@ export default function ManuscriptWorkspace() {
 
   const analyzeMutation = useMutation({
     mutationFn: async (helpTypes: string[]) => {
+      setShowAnalysisDialog(false);
       const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`, { helpTypes });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
-      setShowAnalysisDialog(false);
       toast({ title: "Analysis Complete", description: "SAGE has completed a comprehensive review of your manuscript." });
     },
     onError: (error: Error) => {

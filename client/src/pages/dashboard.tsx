@@ -3,11 +3,12 @@ import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
-import { Flame, Trophy, FileText, Zap, BarChart3, Upload, Trash2, GraduationCap, AlertTriangle, LogOut } from "lucide-react";
+import { Flame, Trophy, FileText, Zap, BarChart3, Upload, Trash2, GraduationCap, AlertTriangle, LogOut, Loader2 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Manuscript } from "@shared/schema";
 
@@ -120,6 +121,13 @@ export default function Dashboard() {
   const { data: manuscripts = [], isLoading: manuscriptsLoading } = useQuery<Manuscript[]>({
     queryKey: ["/api/manuscripts"],
     enabled: isAuthenticated,
+    refetchInterval: (query) => {
+      const data = query.state.data as Manuscript[] | undefined;
+      if (data?.some(m => m.analysisStatus === "processing" || m.extractionStatus === "processing")) {
+        return 3000;
+      }
+      return false;
+    },
   });
 
   if (authLoading) {
@@ -268,8 +276,17 @@ export default function Dashboard() {
                         {m.extractionStatus === "processing" && (
                           <span className="text-xs text-primary">Extracting...</span>
                         )}
-                        {m.readinessScore !== null && (
+                        {m.analysisStatus === "processing" && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Analyzing...
+                          </Badge>
+                        )}
+                        {m.analysisStatus === "completed" && m.readinessScore !== null && (
                           <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
+                        )}
+                        {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
+                          <Badge variant="outline" className="text-xs">Not analyzed</Badge>
                         )}
                       </div>
                     </div>
