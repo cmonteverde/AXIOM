@@ -223,18 +223,7 @@ You MUST provide exhaustive, section-by-section analysis. Do NOT summarize or ab
 
 4. **scoreBreakdown**: Provide scores for each category that contributes to the overall readiness score, so the user understands exactly how their score was calculated.
 
-5. **learnLinks**: Provide at least 5-8 learning resources. Each MUST include a real, working URL to a top-tier academic writing resource. Use these trusted sources:
-   - Purdue OWL (owl.purdue.edu) for writing mechanics, citation, structure
-   - Nature Masterclasses (masterclasses.nature.com) for research publishing
-   - Elsevier Researcher Academy (researcheracademy.elsevier.com) for submission
-   - PLOS resources (plos.org/resource) for open access and methods
-   - APA Style (apastyle.apa.org) for APA formatting
-   - Springer Nature guides (springernature.com/gp/authors) for author guides
-   - Wiley Author Services (authorservices.wiley.com) for journal prep
-   - COPE (publicationethics.org) for ethics
-   - EQUATOR Network (equator-network.org) for reporting guidelines (CONSORT, STROBE, PRISMA)
-   - Academic Phrasebank (phrasebank.manchester.ac.uk) for academic writing phrases
-   Pick the most relevant resources for the manuscript's specific weaknesses.
+5. **learnLinks**: Provide at least 5-8 learning resources. For the "topic" field, use ONLY one of these exact topic keys: "title", "abstract", "introduction", "methods", "results", "discussion", "limitations", "conclusions", "keywords", "writing_quality", "zero_i", "statistics", "ethics", "references", "structure", "submission", "cover_letter", "reviewer_response". Pick topics most relevant to the manuscript's weaknesses. The "url" field will be auto-populated — leave it as an empty string "".
 
 ## YOUR TASK
 Analyze the manuscript and return a JSON object with this exact structure:
@@ -324,6 +313,90 @@ Be exhaustive, specific, constructive, and ground ALL feedback in UMA principles
       } catch {
         await storage.updateManuscriptAnalysis(manuscript.id, null, "failed");
         return res.status(500).json({ message: "Failed to parse AI response" });
+      }
+
+      const LEARN_LINK_URLS: Record<string, { url: string; source: string }[]> = {
+        title: [
+          { url: "https://owl.purdue.edu/owl/general_writing/the_writing_process/thesis_statement_tips.html", source: "Purdue OWL" },
+          { url: "https://www.nature.com/scitable/topicpage/scientific-papers-13815490/", source: "Nature Scitable" },
+        ],
+        abstract: [
+          { url: "https://owl.purdue.edu/owl/general_writing/common_writing_assignments/research_papers/writing_a_research_paper.html", source: "Purdue OWL" },
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/writing-a-journal-manuscript/writing-abstracts/10285522", source: "Springer" },
+        ],
+        introduction: [
+          { url: "https://owl.purdue.edu/owl/general_writing/common_writing_assignments/research_papers/writing_a_research_paper.html", source: "Purdue OWL" },
+          { url: "https://www.nature.com/scitable/topicpage/scientific-papers-13815490/", source: "Nature Scitable" },
+        ],
+        methods: [
+          { url: "https://www.equator-network.org/", source: "EQUATOR Network" },
+          { url: "https://owl.purdue.edu/owl/general_writing/common_writing_assignments/research_papers/writing_a_research_paper.html", source: "Purdue OWL" },
+        ],
+        results: [
+          { url: "https://apastyle.apa.org/instructional-aids/tutorials-webinars", source: "APA Style" },
+          { url: "https://www.equator-network.org/", source: "EQUATOR Network" },
+        ],
+        discussion: [
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/writing-a-journal-manuscript/discussion/10285524", source: "Springer" },
+          { url: "https://www.nature.com/scitable/topicpage/scientific-papers-13815490/", source: "Nature Scitable" },
+        ],
+        limitations: [
+          { url: "https://www.scribbr.com/research-paper/limitations-of-research/", source: "Scribbr" },
+        ],
+        conclusions: [
+          { url: "https://owl.purdue.edu/owl/general_writing/common_writing_assignments/research_papers/writing_a_research_paper.html", source: "Purdue OWL" },
+        ],
+        keywords: [
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/writing-a-journal-manuscript/title-abstract-and-keywords/10285522", source: "Springer" },
+        ],
+        writing_quality: [
+          { url: "https://www.phrasebank.manchester.ac.uk/", source: "Academic Phrasebank" },
+          { url: "https://owl.purdue.edu/owl/general_writing/academic_writing/index.html", source: "Purdue OWL" },
+        ],
+        zero_i: [
+          { url: "https://owl.purdue.edu/owl/general_writing/academic_writing/active_and_passive_voice/index.html", source: "Purdue OWL" },
+          { url: "https://www.phrasebank.manchester.ac.uk/", source: "Academic Phrasebank" },
+        ],
+        statistics: [
+          { url: "https://www.equator-network.org/reporting-guidelines/", source: "EQUATOR Network" },
+          { url: "https://apastyle.apa.org/instructional-aids/tutorials-webinars", source: "APA Style" },
+        ],
+        ethics: [
+          { url: "https://publicationethics.org/guidance", source: "COPE" },
+          { url: "https://www.equator-network.org/", source: "EQUATOR Network" },
+        ],
+        references: [
+          { url: "https://owl.purdue.edu/owl/research_and_citation/resources.html", source: "Purdue OWL" },
+          { url: "https://apastyle.apa.org/style-grammar-guidelines/references", source: "APA Style" },
+        ],
+        structure: [
+          { url: "https://www.nature.com/scitable/topicpage/scientific-papers-13815490/", source: "Nature Scitable" },
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/writing-a-journal-manuscript/overview/10285518", source: "Springer" },
+        ],
+        submission: [
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/submitting-to-a-journal/cover-letters/10285726", source: "Springer" },
+          { url: "https://authorservices.wiley.com/author-resources/Journal-Authors/Prepare/index.html", source: "Wiley" },
+        ],
+        cover_letter: [
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/submitting-to-a-journal/cover-letters/10285726", source: "Springer" },
+        ],
+        reviewer_response: [
+          { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/submitting-to-a-journal/revision-and-appeals/10285730", source: "Springer" },
+          { url: "https://authorservices.wiley.com/author-resources/Journal-Authors/Prepare/index.html", source: "Wiley" },
+        ],
+      };
+
+      if (analysisJson.learnLinks && Array.isArray(analysisJson.learnLinks)) {
+        analysisJson.learnLinks = analysisJson.learnLinks.map((link: any) => {
+          const topicKey = (link.topic || "").toLowerCase().replace(/[\s&]+/g, "_").replace(/[^a-z_]/g, "");
+          const matches = LEARN_LINK_URLS[topicKey] || LEARN_LINK_URLS["writing_quality"] || [];
+          const picked = matches[0];
+          return {
+            ...link,
+            url: picked?.url || "https://owl.purdue.edu/owl/general_writing/academic_writing/index.html",
+            source: picked?.source || "Purdue OWL",
+          };
+        });
       }
 
       const readinessScore = analysisJson.readinessScore ?? null;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -117,6 +117,7 @@ interface AnalysisData {
     description: string;
     topic: string;
     url?: string;
+    source?: string;
   }>;
 }
 
@@ -416,6 +417,9 @@ export default function ManuscriptWorkspace() {
   const [actionFilter, setActionFilter] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [extractionAttempted, setExtractionAttempted] = useState(false);
+  const [highlightText, setHighlightText] = useState<string | null>(null);
+  const manuscriptContentRef = useRef<HTMLDivElement>(null);
+  const manuscriptTextRef = useRef<string>("");
 
   const manuscriptId = params?.id;
 
@@ -480,6 +484,68 @@ export default function ManuscriptWorkspace() {
     });
   };
 
+  const extractQuotedText = useCallback((text: string): string | null => {
+    const normalized = text.replace(/[\u201C\u201D\u2018\u2019]/g, '"');
+    const matches = normalized.match(/"([^"]{8,})"/g);
+    if (matches && matches.length > 0) {
+      return matches[0].replace(/^"|"$/g, "");
+    }
+    return null;
+  }, []);
+
+  const findBestMatch = useCallback((finding: string, section: string, fullText: string): string | null => {
+    if (!fullText) return null;
+    const lowerFull = fullText.toLowerCase();
+
+    const quoted = extractQuotedText(finding);
+    if (quoted && lowerFull.includes(quoted.toLowerCase())) {
+      return quoted;
+    }
+
+    const sectionHeaders = [
+      section,
+      section.toLowerCase(),
+      section.toUpperCase(),
+      `${section}:`,
+      `${section.toUpperCase()}:`,
+    ];
+    for (const header of sectionHeaders) {
+      if (lowerFull.includes(header.toLowerCase())) {
+        return header;
+      }
+    }
+
+    const words = finding.split(/\s+/).filter(w => w.length > 4);
+    for (let len = Math.min(6, words.length); len >= 3; len--) {
+      for (let i = 0; i <= words.length - len; i++) {
+        const phrase = words.slice(i, i + len).join(" ");
+        if (lowerFull.includes(phrase.toLowerCase())) {
+          return phrase;
+        }
+      }
+    }
+
+    return null;
+  }, [extractQuotedText]);
+
+  const handleFeedbackClick = useCallback((finding: string, section: string) => {
+    const match = findBestMatch(finding, section, manuscriptTextRef.current);
+    if (!match) {
+      toast({ title: "Location not found", description: `Could not locate the "${section}" reference in the manuscript text.` });
+      return;
+    }
+    setHighlightText(match);
+
+    setTimeout(() => {
+      const el = manuscriptContentRef.current;
+      if (!el) return;
+      const mark = el.querySelector("mark");
+      if (mark) {
+        mark.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  }, [findBestMatch, toast]);
+
   useEffect(() => {
     if (
       manuscript &&
@@ -524,6 +590,7 @@ export default function ManuscriptWorkspace() {
   const hasAnalysis = manuscript.analysisStatus === "completed" && analysis;
   const isAnalyzing = analyzeMutation.isPending;
   const manuscriptText = manuscript.fullText || manuscript.previewText || "";
+  manuscriptTextRef.current = manuscriptText;
   const isReExtracting = extractMutation.isPending;
 
   const feedbackSections = hasAnalysis
@@ -623,6 +690,18 @@ export default function ManuscriptWorkspace() {
               <div className="p-4 border-b flex items-center gap-2 flex-wrap">
                 <BookOpen className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold">Manuscript Content</h2>
+                {highlightText && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setHighlightText(null)}
+                    className="ml-2"
+                    data-testid="button-clear-highlight"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear highlight
+                  </Button>
+                )}
                 {manuscriptText && (
                   <span className="text-xs text-muted-foreground ml-auto">
                     {manuscriptText.length.toLocaleString()} characters
@@ -637,8 +716,23 @@ export default function ManuscriptWorkspace() {
               </div>
               <ScrollArea className="flex-1 p-4" style={{ height: "calc(100vh - 180px)" }}>
                 {manuscriptText ? (
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed font-mono" data-testid="text-manuscript-content">
-                    {manuscriptText}
+                  <div ref={manuscriptContentRef} className="whitespace-pre-wrap text-sm leading-relaxed font-mono" data-testid="text-manuscript-content">
+                    {highlightText ? (() => {
+                      const lowerText = manuscriptText.toLowerCase();
+                      const lowerSearch = highlightText.toLowerCase();
+                      const idx = lowerText.indexOf(lowerSearch);
+                      if (idx === -1) return manuscriptText;
+                      const before = manuscriptText.slice(0, idx);
+                      const match = manuscriptText.slice(idx, idx + highlightText.length);
+                      const after = manuscriptText.slice(idx + highlightText.length);
+                      return (
+                        <>
+                          {before}
+                          <mark className="bg-gold/40 text-foreground rounded px-0.5">{match}</mark>
+                          {after}
+                        </>
+                      );
+                    })() : manuscriptText}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center py-16">
@@ -873,7 +967,12 @@ export default function ManuscriptWorkspace() {
                                 </button>
                               )}
                               {(isExpanded || feedbackFilter !== null) && sectionItems.map((fb, i) => (
-                                <Card key={i} className="p-3 mb-2">
+                                <Card
+                                  key={i}
+                                  className="p-3 mb-2 cursor-pointer hover-elevate"
+                                  onClick={() => handleFeedbackClick(fb.finding, fb.section)}
+                                  data-testid={`card-feedback-${fb.section.toLowerCase().replace(/[^a-z]/g, "-")}-${i}`}
+                                >
                                   {feedbackFilter !== null && (
                                     <Badge variant="outline" className="mb-2 text-xs">{fb.section}</Badge>
                                   )}
@@ -883,6 +982,10 @@ export default function ManuscriptWorkspace() {
                                     <p className="text-xs font-medium text-primary mb-0.5">Why it Matters (UMA)</p>
                                     <p className="text-xs text-muted-foreground">{fb.whyItMatters}</p>
                                   </div>
+                                  <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                                    <BookOpen className="w-3 h-3" />
+                                    Click to locate in manuscript
+                                  </p>
                                 </Card>
                               ))}
                             </div>
@@ -991,6 +1094,9 @@ export default function ManuscriptWorkspace() {
                                   <p className="text-xs text-muted-foreground mt-0.5">{link.description}</p>
                                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <Badge variant="outline" className="text-xs">{link.topic}</Badge>
+                                    {link.source && (
+                                      <Badge variant="secondary" className="text-xs">{link.source}</Badge>
+                                    )}
                                     {link.url && (
                                       <span className="text-xs text-primary underline">Visit resource</span>
                                     )}
