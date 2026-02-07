@@ -485,10 +485,14 @@ export default function ManuscriptWorkspace() {
   };
 
   const extractQuotedText = useCallback((text: string): string | null => {
-    const normalized = text.replace(/[\u201C\u201D\u2018\u2019]/g, '"');
-    const matches = normalized.match(/"([^"]{8,})"/g);
-    if (matches && matches.length > 0) {
-      return matches[0].replace(/^"|"$/g, "");
+    const normalized = text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+    const doubleQuoted = normalized.match(/"([^"]{8,})"/g);
+    if (doubleQuoted && doubleQuoted.length > 0) {
+      return doubleQuoted[0].replace(/^"|"$/g, "");
+    }
+    const singleQuoted = normalized.match(/'([^']{8,})'/g);
+    if (singleQuoted && singleQuoted.length > 0) {
+      return singleQuoted[0].replace(/^'|'$/g, "");
     }
     return null;
   }, []);
@@ -500,6 +504,14 @@ export default function ManuscriptWorkspace() {
     const quoted = extractQuotedText(finding);
     if (quoted && lowerFull.includes(quoted.toLowerCase())) {
       return quoted;
+    }
+
+    const sectionLower = section.toLowerCase();
+    if (sectionLower === "title" || sectionLower === "title/keywords") {
+      const firstLine = fullText.split(/\n/).find(l => l.trim().length > 0);
+      if (firstLine && firstLine.trim().length >= 5) {
+        return firstLine.trim();
+      }
     }
 
     const sectionHeaders = [
@@ -529,7 +541,22 @@ export default function ManuscriptWorkspace() {
   }, [extractQuotedText]);
 
   const handleFeedbackClick = useCallback((finding: string, section: string) => {
+    const sectionLower = section.toLowerCase();
+    const isTopSection = sectionLower === "title" || sectionLower === "title/keywords" || sectionLower === "keywords";
+
     const match = findBestMatch(finding, section, manuscriptTextRef.current);
+
+    if (!match && isTopSection) {
+      setHighlightText(null);
+      setTimeout(() => {
+        const el = manuscriptContentRef.current;
+        if (el) {
+          el.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }, 50);
+      return;
+    }
+
     if (!match) {
       toast({ title: "Location not found", description: `Could not locate the "${section}" reference in the manuscript text.` });
       return;
