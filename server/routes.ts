@@ -217,13 +217,24 @@ You MUST provide exhaustive, section-by-section analysis. Do NOT summarize or ab
 
 1. **detailedFeedback**: Provide feedback for EVERY section of the manuscript that is present (Title, Abstract, Introduction, Methods, Results, Discussion, Limitations, Conclusions, References, and any other sections). Each section should have MULTIPLE feedback items covering different aspects. Aim for at least 2-3 feedback items per section present in the manuscript, for a total of 15-30+ items.
 
-2. **actionItems**: Provide specific, actionable tasks for EVERY issue found. Each action item should be concrete enough that the author knows exactly what to change. Aim for at least 15-25 action items covering all sections. Group by priority (high items first, then medium, then low).
+2. **actionItems**: CRITICAL ALIGNMENT RULE — Every single piece of feedback in detailedFeedback MUST have at least one corresponding actionItem. Every criticalIssue MUST also have a corresponding actionItem. There should be a 1:1 or 1:many mapping from feedback to actions. Each action item must be concrete enough that the author knows exactly what to change (e.g., "Rewrite the title from 'X' to 'Y' to follow claim-based structure"). Aim for at least 15-25 action items covering all sections. Group by priority (high items first, then medium, then low).
 
-3. **criticalIssues**: List ALL significant issues, not just the top 3. Include issues across every section.
+3. **criticalIssues**: List ALL significant issues, not just the top 3. Include issues across every section. Each must have a matching actionItem.
 
 4. **scoreBreakdown**: Provide scores for each category that contributes to the overall readiness score, so the user understands exactly how their score was calculated.
 
-5. **learnLinks**: Provide at least 5-8 learning resources covering different UMA topics relevant to the manuscript's weaknesses.
+5. **learnLinks**: Provide at least 5-8 learning resources. Each MUST include a real, working URL to a top-tier academic writing resource. Use these trusted sources:
+   - Purdue OWL (owl.purdue.edu) for writing mechanics, citation, structure
+   - Nature Masterclasses (masterclasses.nature.com) for research publishing
+   - Elsevier Researcher Academy (researcheracademy.elsevier.com) for submission
+   - PLOS resources (plos.org/resource) for open access and methods
+   - APA Style (apastyle.apa.org) for APA formatting
+   - Springer Nature guides (springernature.com/gp/authors) for author guides
+   - Wiley Author Services (authorservices.wiley.com) for journal prep
+   - COPE (publicationethics.org) for ethics
+   - EQUATOR Network (equator-network.org) for reporting guidelines (CONSORT, STROBE, PRISMA)
+   - Academic Phrasebank (phrasebank.manchester.ac.uk) for academic writing phrases
+   Pick the most relevant resources for the manuscript's specific weaknesses.
 
 ## YOUR TASK
 Analyze the manuscript and return a JSON object with this exact structure:
@@ -280,9 +291,10 @@ Analyze the manuscript and return a JSON object with this exact structure:
   },
   "learnLinks": [
     {
-      "title": "<tutorial/resource title>",
+      "title": "<resource title>",
       "description": "<what they'll learn and how it applies to their manuscript>",
-      "topic": "<UMA topic area>"
+      "topic": "<UMA topic area>",
+      "url": "<full URL to the specific resource page>"
     }
   ]
 }

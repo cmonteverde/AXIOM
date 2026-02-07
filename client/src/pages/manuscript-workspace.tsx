@@ -116,6 +116,7 @@ interface AnalysisData {
     title: string;
     description: string;
     topic: string;
+    url?: string;
   }>;
 }
 
@@ -972,18 +973,32 @@ export default function ManuscriptWorkspace() {
                           Based on your manuscript's areas for improvement, here are UMA resources to strengthen your writing.
                         </p>
                         {analysis.learnLinks.map((link, i) => (
-                          <Card key={i} className="p-3 hover-elevate cursor-pointer" data-testid={`card-learn-${i}`}>
-                            <div className="flex items-start gap-3">
-                              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                <GraduationCap className="w-4 h-4 text-primary" />
+                          <a
+                            key={i}
+                            href={link.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                            data-testid={`card-learn-${i}`}
+                          >
+                            <Card className="p-3 hover-elevate cursor-pointer">
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                  <GraduationCap className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium">{link.title}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{link.description}</p>
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <Badge variant="outline" className="text-xs">{link.topic}</Badge>
+                                    {link.url && (
+                                      <span className="text-xs text-primary underline">Visit resource</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium">{link.title}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{link.description}</p>
-                                <Badge variant="outline" className="mt-1 text-xs">{link.topic}</Badge>
-                              </div>
-                            </div>
-                          </Card>
+                            </Card>
+                          </a>
                         ))}
                         {analysis.learnLinks.length === 0 && (
                           <p className="text-sm text-muted-foreground text-center py-4">No learning resources available.</p>
