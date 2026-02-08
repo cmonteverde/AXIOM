@@ -34,6 +34,9 @@ import {
   GraduationCap,
   RefreshCw,
   Info,
+  Layout,
+  Zap,
+  Repeat,
   ChevronDown,
   ChevronRight,
   X,
@@ -1170,11 +1173,62 @@ export default function ManuscriptWorkspace() {
                     </TabsContent>
 
                     <TabsContent value="learn" className="p-4 mt-0">
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-semibold flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4 text-primary" />
-                          Learning Resources ({(analysis.learnLinks || []).length})
-                        </h3>
+                      <div className="space-y-6">
+                        {/* SAGE Advanced Workflow Strategies Section */}
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-primary" />
+                            SAGE Advanced Workflow Strategies
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            Professional writing strategies to reduce cognitive load and overcome writer's block.
+                          </p>
+                          <div className="grid grid-cols-1 gap-3">
+                            {[
+                              {
+                                title: "Inverted Assembly Line",
+                                description: "Stop writing linearly. Start with Figures and Methods to build momentum.",
+                                icon: <Layout className="w-3 h-3" />
+                              },
+                              {
+                                title: "Zero Draft Protocol",
+                                description: "Separate generation from evaluation. Write fast, edit later.",
+                                icon: <Zap className="w-3 h-3" />
+                              },
+                              {
+                                title: "Three-Move Methods Loop",
+                                description: "Contextualize, Describe, and Justify every methodological choice.",
+                                icon: <Repeat className="w-3 h-3" />
+                              }
+                            ].map((strategy, i) => (
+                              <Card key={i} className="p-3 border-dashed bg-muted/30">
+                                <div className="flex items-start gap-2">
+                                  <div className="mt-0.5 p-1 rounded-sm bg-primary/10 text-primary">
+                                    {strategy.icon}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-medium">{strategy.title}</h4>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">{strategy.description}</p>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                          <a 
+                            href="https://lennartnacke.com/reviewer-2-cant-touch-a-paper-structured-like-this/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block text-[10px] text-primary hover:underline mt-2"
+                          >
+                            View full Advanced Writing Workflow by Lennart Nacke →
+                          </a>
+                        </div>
+
+                        <div className="space-y-3 pt-4 border-t">
+                          <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-primary" />
+                            Learning Resources ({(analysis.learnLinks || []).length})
+                          </h3>
                         <p className="text-xs text-muted-foreground">
                           Based on your manuscript's areas for improvement, here are UMA resources to strengthen your writing.
                         </p>
@@ -1213,7 +1267,8 @@ export default function ManuscriptWorkspace() {
                           <p className="text-sm text-muted-foreground text-center py-4">No learning resources available.</p>
                         )}
                       </div>
-                    </TabsContent>
+                    </div>
+                  </TabsContent>
                   </ScrollArea>
                 </Tabs>
               </Card>

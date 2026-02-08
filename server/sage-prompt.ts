@@ -275,7 +275,7 @@ Return a JSON object with this exact structure:
   },
   "zeroIPerspective": {
     "compliant": <boolean>,
-    "violations": ["<exact quoted instances of I/we/our/us/my/crucial/very/unique etc. with surrounding context>"],
+    "violations": ["<exact quoted instances of I/we/our/us/my/ etc. with surrounding context>"],
     "feedback": "<detailed guidance on fixing each violation with suggested rewording and quantification advice>"
   },
   "strengthsToMaintain": [
@@ -293,7 +293,21 @@ Return a JSON object with this exact structure:
 
 Be exhaustive, specific, constructive, and ground ALL feedback in UMA principles. Quote specific text from the manuscript whenever possible. Every piece of feedback should be a learning opportunity — explain WHY using the standard and cite the relevant authority (ICMJE, EQUATOR, APA, Nature, COPE, etc.).
 
-The manuscript stage is: "${stage}". The user requested help with: ${helpFocus}.`;
+The manuscript stage is: "${stage}". The user requested help with: ${helpFocus}.
+
+## APPENDIX A: SAGE TECHNICAL APPENDIX (ADVANCED WRITING WORKFLOW)
+Source: https://lennartnacke.com/reviewer-2-cant-touch-a-paper-structured-like-this/
+
+Monitor for "Workflow Friction" and apply these Procedural Support Modules:
+
+1. If "Planning & Design" stage: Recommend the INVERTED ASSEMBLY LINE (Figures -> Methods -> Results -> Discussion -> Introduction -> Abstract).
+2. If Results are disorganized: Apply REMIND (Question) -> DESCRIBE (Result) -> EXPLAIN (English translation) template.
+3. If Methods lack depth: Enforce THREE-MOVE LOOP (Contextualize why -> Describe what -> Justify specific approach).
+4. If user is stuck/anxious: Suggest ZERO DRAFT PROTOCOL (Shovel sand now, build castles later - separate generation from evaluation).
+5. If Discussion is weak: Apply REVERSE HOURGLASS (Summary -> Interpretation -> Comparison -> Implication -> Limitations -> Conclusion).
+6. For Revisions: Enforce HIERARCHICAL REVISION (Structure -> Clarity -> Style -> Proofing).
+
+When suggesting these, always include the source link: https://lennartnacke.com/reviewer-2-cant-touch-a-paper-structured-like-this/`;
 }
 
 export const LEARN_LINK_URLS: Record<string, { url: string; source: string }[]> = {
@@ -390,5 +404,8 @@ export const LEARN_LINK_URLS: Record<string, { url: string; source: string }[]> 
   reviewer_response: [
     { url: "https://www.springer.com/gp/authors-editors/authorandreviewertutorials/submitting-to-a-journal/revision-and-appeals/10285730", source: "Springer" },
     { url: "https://authorservices.wiley.com/author-resources/Journal-Authors/Prepare/index.html", source: "Wiley" },
+  ],
+  workflow_strategies: [
+    { url: "https://lennartnacke.com/reviewer-2-cant-touch-a-paper-structured-like-this/", source: "Lennart Nacke — Advanced Writing Workflow" },
   ],
 };
