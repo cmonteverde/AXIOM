@@ -22,6 +22,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
 import type { Manuscript } from "@shared/schema";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import {
   ArrowLeft,
   Loader2,
   Sparkles,
@@ -41,6 +48,10 @@ import {
   ChevronRight,
   X,
   ExternalLink,
+  Download,
+  Save,
+  Edit2,
+  Check,
 } from "lucide-react";
 
 const HELP_TYPE_GROUPS = [
@@ -429,7 +440,65 @@ export default function ManuscriptWorkspace() {
   const [matched, params] = useRoute("/manuscript/:id");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+
+  const updateTextMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await apiRequest("PATCH", `/api/manuscripts/${manuscriptId}`, { fullText: text });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
+      setIsEditing(false);
+      toast({ title: "Manuscript Updated", description: "Changes have been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleDownload = async (format: "txt" | "docx" | "pdf") => {
+    const text = manuscript.fullText || manuscript.previewText || "";
+    const fileName = (manuscript.title || "manuscript").replace(/[^a-z0-9]/gi, "_");
+
+    if (format === "txt") {
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}.txt`;
+      a.click();
+    } else if (format === "docx") {
+      const { Document, Packer, Paragraph, TextRun } = await import("docx");
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: text.split("\n").map(line => new Paragraph({
+            children: [new TextRun(line)],
+          })),
+        }],
+      });
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}.docx`;
+      a.click();
+    } else if (format === "pdf") {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF();
+      const splitText = doc.splitTextToSize(text, 180);
+      doc.text(splitText, 10, 10);
+      doc.save(`${fileName}.pdf`);
+    }
+  };
+
+  useEffect(() => {
+    if (manuscript?.fullText) {
+      setEditText(manuscript.fullText);
+    }
+  }, [manuscript?.fullText]);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
   const [feedbackFilter, setFeedbackFilter] = useState<string | null>(null);
@@ -697,6 +766,21 @@ export default function ManuscriptWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {manuscriptText && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2" data-testid="button-download">
+                    <Download className="w-4 h-4" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDownload("txt")}>TXT Format</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownload("docx")}>DOCX Format</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownload("pdf")}>PDF Format</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button
               variant={hasAnalysis ? "outline" : "default"}
               size="sm"
@@ -737,10 +821,48 @@ export default function ManuscriptWorkspace() {
         <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
           <div className="w-full lg:w-[60%]">
             <Card className="h-full flex flex-col">
-              <div className="p-4 border-b flex items-center gap-2 flex-wrap">
-                <BookOpen className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-semibold">Manuscript Content</h2>
-                {highlightText && (
+              <div className="p-4 border-b flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  <h2 className="text-sm font-semibold">Manuscript Content</h2>
+                  {!isEditing ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setIsEditing(true)}
+                      data-testid="button-edit-manuscript"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-sage"
+                        onClick={() => updateTextMutation.mutate(editText)}
+                        disabled={updateTextMutation.isPending}
+                        data-testid="button-save-manuscript"
+                      >
+                        {updateTextMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditText(manuscript.fullText || "");
+                        }}
+                        data-testid="button-cancel-edit"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {highlightText && !isEditing && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -765,7 +887,14 @@ export default function ManuscriptWorkspace() {
                 )}
               </div>
               <ScrollArea className="flex-1 p-4" style={{ height: "calc(100vh - 180px)" }}>
-                {manuscriptText ? (
+                {isEditing ? (
+                  <Textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="flex-1 w-full h-full min-h-[500px] font-mono text-sm leading-relaxed resize-none border-0 focus-visible:ring-0 p-0"
+                    placeholder="Enter manuscript text here..."
+                  />
+                ) : manuscriptText ? (
                   <div ref={manuscriptContentRef} className="whitespace-pre-wrap text-sm leading-relaxed font-mono" data-testid="text-manuscript-content">
                     {highlightText ? (() => {
                       const lowerText = manuscriptText.toLowerCase();
