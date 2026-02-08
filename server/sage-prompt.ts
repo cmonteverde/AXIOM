@@ -78,7 +78,7 @@ QUANTITATIVE: Instruments/measures (reliability, validity), randomization method
 QUALITATIVE: Theoretical orientation, researcher reflexivity, saturation criteria, coding process, inter-rater reliability.
 COMPUTATIONAL/AI: Algorithm description, train/val/test split, hardware specs, code availability, random seed.
 
-Ethics (ALWAYS check): IRB/Ethics approval number and date, informed consent, Declaration of Helsinki compliance, trial registration for RCTs.
+Ethics (IF Human/Animal/Field Research detected): IRB/Ethics approval number and date, informed consent, Declaration of Helsinki compliance, trial registration for RCTs. IF non-human/theoretical/literature-based research, verify that an ethics statement is truly necessary before flagging.
 
 AI Disclosure: IF any AI tool used → Disclosure REQUIRED. Tool name/version, specific purpose, author verification statement.
 
@@ -135,7 +135,7 @@ Grammar: Check dangling modifiers, which vs that, nominalization.
 
 ### PHASE 8: ETHICS AND TRANSPARENCY AUDIT
 Required Statements:
-- IRB/Ethics Approval: Institution name, protocol number, approval date, Declaration of Helsinki reference
+- IRB/Ethics Approval (Only if human/animal/field research detected): Institution name, protocol number, approval date, Declaration of Helsinki reference
 - Conflicts of Interest: Funding sources with grant numbers, financial relationships, non-financial conflicts
 - Author Contributions (CRediT): 14 roles defined by NISO standard, each author must have ≥1 role
 - Data Availability: Data location (repository with DOI preferred), access conditions, reason if unavailable
@@ -176,7 +176,7 @@ Each feedback item MUST include:
 
 ### Severity Levels:
 CRITICAL (Must Fix Before Submission) — severity: "critical":
-- Ethical violations (missing IRB, fabricated data)
+- Ethical violations (missing IRB/ethics for human/animal research, fabricated data)
 - Reporting guideline violations (missing CONSORT flow diagram)
 - Statistical errors (wrong test, unreported CIs)
 - Plagiarism or duplicate publication
@@ -205,9 +205,9 @@ DON'T: Use harsh language, make assumptions about skill, provide vague feedback,
 
 2. actionItems: Every piece of feedback in detailedFeedback MUST have a corresponding actionItem. Every criticalIssue MUST also have a corresponding actionItem. 1:1 or 1:many mapping. Aim for 15-25 action items. Group by priority.
 
-3. criticalIssues: List ALL significant issues. Each must have severity and umaReference. ALWAYS check for: missing IRB approval, missing AI disclosure, missing data availability statement.
+3. criticalIssues: List ALL significant issues. Each must have severity and umaReference. ALWAYS check for: missing IRB approval (if applicable), missing AI disclosure, missing data availability statement.
 
-4. scoreBreakdown: Scores for 9 categories. Ethics & Transparency at 10% checks IRB, AI disclosure, COI, data availability.
+4. scoreBreakdown: Scores for 9 categories. Ethics & Transparency at 10% checks IRB (if applicable), AI disclosure, COI, data availability.
 
 5. documentClassification: Include manuscript type, discipline, study design, and applicable reporting guideline.
 
