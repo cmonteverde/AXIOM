@@ -71,15 +71,6 @@ export class DatabaseStorage implements IStorage {
     return manuscript;
   }
 
-  async updateManuscriptText(id: string, fullText: string): Promise<Manuscript | undefined> {
-    const previewText = fullText.slice(0, 500).trim();
-    const [manuscript] = await db.update(manuscripts)
-      .set({ fullText, previewText })
-      .where(eq(manuscripts.id, id))
-      .returning();
-    return manuscript;
-  }
-
   async updateManuscriptAnalysis(id: string, analysisJson: any, analysisStatus: string, readinessScore?: number): Promise<Manuscript | undefined> {
     const updateData: any = { analysisJson, analysisStatus };
     if (readinessScore !== undefined) {

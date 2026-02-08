@@ -285,32 +285,5 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/manuscripts/:id", isAuthenticated, async (req: any, res) => {
-    try {
-      const manuscript = await storage.getManuscript(req.params.id);
-      if (!manuscript) {
-        return res.status(404).json({ message: "Manuscript not found" });
-      }
-      const userId = req.user.claims.sub;
-      if (manuscript.userId !== userId) {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      const { fullText, title, stage } = req.body;
-      let updated;
-      
-      if (fullText !== undefined) {
-        updated = await storage.updateManuscriptText(manuscript.id, fullText);
-      } else {
-        // Handle other updates if needed, for now we just return the current state
-        updated = manuscript;
-      }
-
-      return res.json(updated);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  });
-
   return httpServer;
 }
