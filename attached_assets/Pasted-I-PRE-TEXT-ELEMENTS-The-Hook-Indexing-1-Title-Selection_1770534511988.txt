@@ -1,0 +1,102 @@
+I. PRE-TEXT ELEMENTS (The Hook & Indexing)
+1. Title Selection (The "Discovery" Layer)
+The Claim-Based Title: States the primary result as an active fact. Best for high-impact visibility.
+Structure: [Variable A] [Active Verb] [Variable B] via [Mechanism].
+The Descriptive Title: Neutral and precise. Best for methodology-heavy papers.
+Structure: [Effect] of [Variable A] on [Variable B] in [Context].
+Editor’s Rule: Eliminate "filler" phrases: "Observations on," "An Investigation into," "Study of."
+2. Strategic Keywords & SEO
+Synonym Mapping: Never repeat words from the title. If the title says "Cancer," keywords should use "Oncology, Malignancy, Neoplasm."
+The Quadrant Index: Include exactly one keyword for: (1) Core Method, (2) Subject/Population, (3) Theoretical Framework, (4) Specific Geographic or Temporal Context.
+3. The Abstract (The "Structured 5-Move" Model)
+Sentence 1 (The Hook): Broad significance of the research area.
+Sentence 2 (The Gap): The "Pain Point." Why current knowledge is insufficient.
+Sentence 3 (The Approach): High-level methodology and scale.
+Sentence 4 (The Findings): Concrete, quantified/qualified data. No vague descriptors like "Significant results were found."
+Sentence 5 (The Impact): The "So What." How this shifts the field’s trajectory.
+
+II. THE STRUCTURAL CORE (The "Rigor" Layer)
+Section 1: INTRODUCTION (Logic & Gap Analysis)
+Global Context: What is the consensus?
+The "However" Moment: Identify the friction, the contradiction, or the missing data.
+The Resolution: Explicitly state how this paper fills that exact gap.
+The Roadmap: Close with specific Research Questions (RQs) or Hypotheses. No results allowed here.
+Section 2: MATERIALS & METHODS (The Replication Engine)
+Sampling/Setting: Justify the selection of the site, population, or dataset.
+Instrumentation: Versions of software, exact model of equipment, or specific theoretical frameworks for coding.
+The "Recipe" Rule: Provide enough detail that a stranger could replicate the study and achieve the same result.
+Ethics/Transparency: Cite IRB approvals, participant consent, and data availability statements.
+Section 3: RESULTS (The "Pure Evidence" Vault)
+The Mirror Principle: Subheadings must follow the exact order of the Research Questions in the Introduction.
+Objective Neutrality: 0% interpretation. Report the "What," never the "Why."
+The Significance Requirement: Always report error bars, p-values, Confidence Intervals, or Inter-rater Reliability.
+Stand-Alone Visuals: Every Figure/Table must be understandable through its caption alone.
+Section 4: DISCUSSION (The "Synthesis" Layer)
+Move 1: The Interpretation. What do the results mean in relation to the hypothesis?
+Move 2: The Comparison. Explicitly link findings to 5–10 key papers. Do you agree or contradict? Explain why.
+Move 3: The Implication. Move from the local data to the global system.
+Move 4: The Novelty. How has the "Pain Point" from the Intro been resolved?
+Section 5: LIMITATIONS (Interpretive Context)
+Ownership: Frame limitations not as failures, but as the boundaries of the study’s generalizability.
+Categories: Address (1) Sample size/scale, (2) Methodological constraints, and (3) Contextual/Structural biases.
+Section 6: CONCLUSIONS (Higher-Level Abstraction)
+Synthesis: Do not repeat statistics. Summarize the "New Reality" created by the findings.
+Recommendations: Actionable, specific pathways for practitioners or policymakers.
+The Horizon: Identify the next logical research gap.
+
+III. UNIVERSAL WRITING & VOICE STANDARDS
+1. The "Zero-I" Perspective
+Total Removal: Delete I, we, our, us, my. * Subject Shift: The Data, the Study, the Analysis, or the Framework are the actors.
+Passive vs. Active: Use passive for procedure ("Interviews were conducted") and active for findings ("The analysis reveals").
+2. Causal vs. Descriptive Language
+The "Hedge" Rule: Unless the study is a randomized controlled trial or a mechanistic proof, avoid "causes," "triggers," "proves," or "results in."
+Preferred Terms: "is associated with," "corresponds to," "indicates," "suggests," "highlights."
+3. Tone & Precision Audit
+Adjective Debridement: Remove subjective modifiers: "crucial," "very," "important," "shocking," "unique."
+Quantification: Replace "High increase" with "42% increase ($p < 0.05$)."
+
+IV. STRATEGIC EDITORIAL DOCUMENTS
+The Cover Letter (The "Editor's Key")
+Pitch 1: Why this paper is a "must-read" for the journal's specific audience.
+Pitch 2: How this work advances a specific debate currently occurring in the journal's recent issues.
+Pitch 3: Confirm originality and lack of competing interests.
+The Rebuttal Table (The Reviewer Defense)
+Format: Column 1 (Reviewer Comment); Column 2 (Author Response); Column 3 (Location in Text).
+Strategy: Be exceptionally polite. If you disagree, provide data-backed evidence rather than opinion.
+
+V. FINAL TECHNICAL "GOLD-STANDARD" SWEEP
+[ ] The Unit Space: Search for units. Ensure a space (e.g., 10 kg not 10kg).
+[ ] Acronym Inauguration: Define every acronym at the first mention only.
+[ ] Reference Hygiene: Check all DOIs and verify that every in-text citation has a matching entry in the bibliography.
+[ ] The "Oxford Comma": Ensure consistent use throughout.
+[ ] Figure Resolution: Verify 300 DPI minimum.
+
+
+I. Pre-Text Elements: The Discovery Layer
+Title Optimization:
+Conciseness: Titles must be concise, specific, and relevant, identifying the study type (e.g., "randomized trial," "systematic review") within the text.
+Debridement: Eliminate filler phrases like "Observations on" or "An Investigation into".
+Structured Abstract (The "Impartial Mirror"):
+Heading Alignment: Use standard headings (Background, Methods, Results, Conclusion) to summarize the study in ~200–300 words.
+Objective Reporting: The abstract must be an objective representation and contain no results not substantiated in the main text.
+Strategic Keywords & SEO:
+Indexing: Select 3–10 specific keywords that are common in the discipline but not redundant with the title to improve searchability.
+II. The Structural Core: The Rigor Layer
+Introduction (The Gap Logic):
+The "Context-Gap-Resolution" Model: Clearly place the research question in a broad context, identify the specific knowledge gap, and justify the study's significance.
+Materials & Methods (The Replication Engine):
+Reproducibility Detail: Describe procedures in sufficient detail for a skilled investigator to replicate the study exactly.
+AI Disclosure: Explicitly disclose the name and version of any AI technologies used, their role (e.g., data analysis, drafting), and the author's role in reviewing the output.
+Results (Pure Evidence):
+Parallelism: Organize results in the same order as the methods and research questions.
+Data Integrity: Display all data whenever possible (e.g., individual data points in scatter plots) rather than just means and error bars.
+Discussion & Conclusion:
+Interpretive Context: Relate findings to similar studies and explain why the chosen model or design was appropriate.
+Hedge Logic: Use cautious terms ("is associated with," "suggests") unless the study is a randomized controlled trial.
+III. Data Visualization & Ethics (The "Trust" Layer)
+Visual Storytelling:
+Self-Explanatory Figures: Every figure must be understandable via its caption alone without the reader referring back to the main text.
+Advanced Visuals: Use modern formats like alluvial diagrams to show shifts over time or beeswarm plots to show data density without overlap.
+Ethics & Transparency:
+Conflict Disclosure: Mandatory disclosure of funding sources, author contributions (CRediT), and potential conflicts of interest.
+Data Availability: Include a "Data Availability Statement" and, where possible, links to code repositories (e.g., GitHub).

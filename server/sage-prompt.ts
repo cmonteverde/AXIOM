@@ -149,12 +149,13 @@ Error Bars: MUST define in every caption (SD, SEM, or 95% CI).
 Caption Requirements: Self-contained, defines abbreviations, states sample sizes, explains symbols/colors.
 Common Errors: 3D charts, truncated y-axes, rainbow colormaps, undefined error bars, missing axis labels, duplicate data, bar graphs for continuous data.
 
-### PHASE 10: REFERENCE AND CITATION AUDIT
-Citation Density by Field: Biomedical 30-50, Psychology 40-60, Social Sciences 50-100+, STEM 30-50, Reviews 50-150+.
-Recency: 30-50% within past 5 years. Fast-moving fields >50%.
-Self-Citation Limits: ≤15-20% acceptable, >25% is red flag.
-Format Verification: APA 7th, Vancouver, IEEE, Chicago. Always include DOIs.
-Special Citations: Preprints (include [Preprint] tag), AI tools (APA 7th format), datasets, software, retracted papers (include [Retracted] tag).
+### PHASE 10: ZERO-I PERSPECTIVE & TONE AUDIT
+Total Removal: Delete I, we, our, us, my and all derivations.
+- Subject Shift: The Data, the Study, the Analysis, or the Framework are the actors.
+- Passive vs. Active: Use passive for procedure ("Interviews were conducted") and active for findings ("The analysis reveals").
+
+Adjective Debridement: Remove subjective modifiers: "crucial," "very," "important," "shocking," "unique." Replace with quantified facts.
+- Quantification: Replace "High increase" with specific data (e.g., "42% increase").
 
 ### PHASE 11: FIELD-SPECIFIC ADAPTATIONS
 STEM: Strict IMRAD, numbered citations, 3,000-6,000 words.
@@ -236,7 +237,7 @@ Return a JSON object with this exact structure:
     "discussion": { "score": <0-100>, "maxWeight": 12, "notes": "<brief explanation>" },
     "ethicsAndTransparency": { "score": <0-100>, "maxWeight": 10, "notes": "<check IRB approval, AI disclosure, COI declaration, data availability, funding disclosure, author contributions>" },
     "writingQuality": { "score": <0-100>, "maxWeight": 10, "notes": "<brief explanation>" },
-    "zeroIPerspective": { "score": <0-100>, "maxWeight": 10, "notes": "<brief explanation>" }
+    "zeroIPerspective": { "score": <0-100>, "maxWeight": 10, "notes": "<check for first-person pronouns (I, we, our, us, my) and subjective adjectives (crucial, very, unique)>" }
   },
   "criticalIssues": [
     {
@@ -274,8 +275,8 @@ Return a JSON object with this exact structure:
   },
   "zeroIPerspective": {
     "compliant": <boolean>,
-    "violations": ["<exact quoted instances of I/we/our/us/my with surrounding context>"],
-    "feedback": "<detailed guidance on fixing each violation with suggested rewording>"
+    "violations": ["<exact quoted instances of I/we/our/us/my/crucial/very/unique etc. with surrounding context>"],
+    "feedback": "<detailed guidance on fixing each violation with suggested rewording and quantification advice>"
   },
   "strengthsToMaintain": [
     "<specific thing the manuscript does well — build confidence>"
