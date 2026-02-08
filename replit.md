@@ -26,7 +26,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `client/src/hooks/use-auth.ts` - Authentication hook
 - `client/src/hooks/use-upload.ts` - File upload hook
 - `client/src/lib/auth-utils.ts` - Auth error handling utilities
-- `server/` - Express server (routes.ts, storage.ts, db.ts)
+- `server/` - Express server (routes.ts, storage.ts, db.ts, sage-prompt.ts)
 - `server/replit_integrations/auth/` - Replit Auth integration
 - `server/replit_integrations/object_storage/` - App Storage integration
 - `shared/schema.ts` - Drizzle ORM schema definitions
@@ -62,15 +62,26 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 7. Manuscript workspace (/manuscript/:id): Split-view, left (60%) text, right (40%) analysis panel
 8. Click "Run SAGE Analysis" -> choose focus areas -> OpenAI analyzes using UMA -> Results stored in DB
 
-## AI Analysis (UMA Framework — Dual Engine)
-- Uses OpenAI GPT-4o with dual-engine UMA system prompt
-- **UMA 1.0 (Primary Logic Engine)**: Recipe rules, mirror principles, CaRS model, Zero-I perspective, 5-Move abstract, writing standards — evaluates manuscript text
-- **UMA v2.0 (Educational Link Engine)**: Every suggestion cross-referenced with authoritative sources (ICMJE, EQUATOR, APA, COPE, Nature, Springer, etc.)
-- Each feedback item includes: finding, suggestion, whyItMatters (UMA pedagogy), resourceUrl (direct link to authority), resourceSource
-- Checks for: Structured 5-Move Abstract, Zero-I Perspective, IRB approval, AI disclosure, data availability, COI declaration
-- Returns structured JSON: readinessScore, scoreBreakdown (9 categories with weighted scores), criticalIssues, detailedFeedback (with resourceUrl/resourceSource), actionItems, abstractAnalysis, zeroIPerspective, learnLinks
+## AI Analysis (11-Phase SAGE Analysis Workflow)
+- System prompt defined in `server/sage-prompt.ts` (buildSageSystemPrompt function + LEARN_LINK_URLS export)
+- Uses OpenAI GPT-4o with 11-Phase Analysis Workflow based on SAGE_AI_ANALYSIS_INSTRUCTIONS.md
+- **Phase 1**: Document Classification (manuscript type, discipline, study design, reporting guideline)
+- **Phase 2**: Reporting Guideline Decision Tree (CONSORT 2025 for RCTs, PRISMA 2020 for systematic reviews, STROBE for observational, COREQ for qualitative, STARD for diagnostics, ARRIVE for animal, TRIPOD+AI for prediction models)
+- **Phase 3**: Structured 5-Move Abstract (Hook, Gap, Approach, Findings, Impact)
+- **Phase 4**: CaRS Model Introduction (Establish Territory, Establish Gap, Resolve Gap)
+- **Phase 5**: Methods Recipe Rule (Nature standard reproducibility)
+- **Phase 6**: Results Mirror Principle (match research questions order)
+- **Phase 7**: Discussion 4 Moves (Interpretation, Comparison, Implication, Novelty Resolution)
+- **Phase 8**: Limitations as Generalizability Boundaries
+- **Phase 9**: Conclusions (New Reality synthesis)
+- **Phase 10**: Zero-I Perspective (first-person pronoun removal)
+- **Phase 11**: Writing Standards & Technical Sweep
+- **Dual Engine**: UMA 1.0 (evaluation logic) + UMA v2.0 (educational references from ICMJE, EQUATOR, APA, COPE, Nature, Springer, etc.)
+- **Severity Levels**: CRITICAL (must fix before submission), IMPORTANT (strongly recommended), MINOR (quality improvements)
+- **Feedback Protocol**: Every item includes Issue, Why It Matters, Recommendation, Standard, Learn More with severity level
+- Returns structured JSON: readinessScore, executiveSummary, documentClassification, scoreBreakdown (9 categories), criticalIssues (with severity), detailedFeedback (with severity + resourceTopic), actionItems, abstractAnalysis, zeroIPerspective, strengthsToMaintain, learnLinks
 - Score breakdown weighted contributions: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), Zero-I (10%)
-- Ethics & Transparency category specifically checks IRB approvals, AI disclosure statements, COI declarations, data availability
+- Ethics & Transparency checks: IRB approvals, AI disclosure (ICMJE 2024), COI declarations, data availability, funding, author contributions (CRediT)
 - Analysis options dialog lets users select focus areas before each analysis
 - Analysis stored in manuscripts.analysis_json (JSONB)
 - Loaded from DB on subsequent visits (no re-analysis needed)

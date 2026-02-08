@@ -71,7 +71,14 @@ interface ScoreCategory {
 
 interface AnalysisData {
   readinessScore: number;
-  summary: string;
+  summary?: string;
+  executiveSummary?: string;
+  documentClassification?: {
+    manuscriptType?: string;
+    discipline?: string;
+    studyDesign?: string;
+    reportingGuideline?: string;
+  };
   scoreBreakdown?: {
     titleAndKeywords?: ScoreCategory;
     abstract?: ScoreCategory;
@@ -83,28 +90,29 @@ interface AnalysisData {
     writingQuality?: ScoreCategory;
     zeroIPerspective?: ScoreCategory;
   };
-  criticalIssues: Array<{
+  criticalIssues?: Array<{
     title: string;
     description: string;
-    severity: "high" | "medium" | "low";
+    severity: string;
     umaReference: string;
   }>;
-  detailedFeedback: Array<{
+  detailedFeedback?: Array<{
     section: string;
     finding: string;
     suggestion: string;
     whyItMatters: string;
+    severity?: string;
     resourceTopic?: string;
     resourceUrl?: string;
     resourceSource?: string;
   }>;
-  actionItems: Array<{
+  actionItems?: Array<{
     task: string;
     priority: "high" | "medium" | "low";
     section?: string;
     completed: boolean;
   }>;
-  abstractAnalysis: {
+  abstractAnalysis?: {
     hasHook: boolean;
     hasGap: boolean;
     hasApproach: boolean;
@@ -112,12 +120,13 @@ interface AnalysisData {
     hasImpact: boolean;
     feedback: string;
   };
-  zeroIPerspective: {
+  zeroIPerspective?: {
     compliant: boolean;
     violations: string[];
     feedback: string;
   };
-  learnLinks: Array<{
+  strengthsToMaintain?: string[];
+  learnLinks?: Array<{
     title: string;
     description: string;
     topic: string;
@@ -193,15 +202,16 @@ function ScoreBar({ label, score, weight }: { label: string; score: number; weig
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const variant =
-    severity === "high"
-      ? "destructive"
-      : severity === "medium"
-        ? "secondary"
-        : "outline";
+  const s = severity.toLowerCase();
+  const isCritical = s === "critical" || s === "high";
+  const isImportant = s === "important" || s === "medium";
+  const variant = isCritical ? "destructive" : isImportant ? "secondary" : "outline";
+  const label = isCritical ? "Critical" : isImportant ? "Important" : "Minor";
+  const dotColor = isCritical ? "bg-destructive" : isImportant ? "bg-gold-dark" : "bg-primary/50";
   return (
-    <Badge variant={variant} className="text-xs">
-      {severity}
+    <Badge variant={variant} className="text-xs gap-1">
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+      {label}
     </Badge>
   );
 }
@@ -626,24 +636,28 @@ export default function ManuscriptWorkspace() {
   manuscriptTextRef.current = manuscriptText;
   const isReExtracting = extractMutation.isPending;
 
+  const detailedFeedback = analysis?.detailedFeedback || [];
+  const actionItems = analysis?.actionItems || [];
+  const criticalIssues = analysis?.criticalIssues || [];
+
   const feedbackSections = hasAnalysis
-    ? Array.from(new Set(analysis.detailedFeedback.map((f) => f.section)))
+    ? Array.from(new Set(detailedFeedback.map((f) => f.section)))
     : [];
 
   const actionSections = hasAnalysis
-    ? Array.from(new Set(analysis.actionItems.filter((a) => a.section).map((a) => a.section!)))
+    ? Array.from(new Set(actionItems.filter((a) => a.section).map((a) => a.section!)))
     : [];
 
   const filteredFeedback = hasAnalysis
     ? feedbackFilter
-      ? analysis.detailedFeedback.filter((f) => f.section === feedbackFilter)
-      : analysis.detailedFeedback
+      ? detailedFeedback.filter((f) => f.section === feedbackFilter)
+      : detailedFeedback
     : [];
 
   const filteredActions = hasAnalysis
     ? actionFilter
-      ? analysis.actionItems.filter((a) => a.section === actionFilter)
-      : analysis.actionItems
+      ? actionItems.filter((a) => a.section === actionFilter)
+      : actionItems
     : [];
 
   const toggleSection = (section: string) => {
@@ -835,10 +849,10 @@ export default function ManuscriptWorkspace() {
                         Overview
                       </TabsTrigger>
                       <TabsTrigger value="feedback" className="flex-1 text-xs" data-testid="tab-feedback">
-                        Feedback ({analysis.detailedFeedback.length})
+                        Feedback ({detailedFeedback.length})
                       </TabsTrigger>
                       <TabsTrigger value="actions" className="flex-1 text-xs" data-testid="tab-actions">
-                        Actions ({analysis.actionItems.length})
+                        Actions ({actionItems.length})
                       </TabsTrigger>
                       <TabsTrigger value="learn" className="flex-1 text-xs" data-testid="tab-learn">
                         Learn
@@ -849,10 +863,27 @@ export default function ManuscriptWorkspace() {
                   <ScrollArea className="flex-1" style={{ height: "calc(100vh - 230px)" }}>
                     <TabsContent value="overview" className="p-4 mt-0">
                       <div className="space-y-6">
+                        {analysis.documentClassification && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {analysis.documentClassification.manuscriptType && (
+                              <Badge variant="outline" className="text-xs">{analysis.documentClassification.manuscriptType}</Badge>
+                            )}
+                            {analysis.documentClassification.discipline && (
+                              <Badge variant="outline" className="text-xs">{analysis.documentClassification.discipline}</Badge>
+                            )}
+                            {analysis.documentClassification.studyDesign && (
+                              <Badge variant="outline" className="text-xs">{analysis.documentClassification.studyDesign}</Badge>
+                            )}
+                            {analysis.documentClassification.reportingGuideline && analysis.documentClassification.reportingGuideline !== "N/A" && (
+                              <Badge variant="secondary" className="text-xs">{analysis.documentClassification.reportingGuideline}</Badge>
+                            )}
+                          </div>
+                        )}
+
                         <div className="text-center">
                           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Publication Readiness</h3>
                           <ScoreRing score={analysis.readinessScore} />
-                          <p className="text-sm text-muted-foreground mt-3">{analysis.summary}</p>
+                          <p className="text-sm text-muted-foreground mt-3">{analysis.executiveSummary || analysis.summary}</p>
                           {analysis.scoreBreakdown && (
                             <button
                               onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
@@ -872,6 +903,7 @@ export default function ManuscriptWorkspace() {
                           />
                         )}
 
+                        {analysis.abstractAnalysis && (
                         <div>
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-primary" />
@@ -890,7 +922,9 @@ export default function ManuscriptWorkspace() {
                             )}
                           </Card>
                         </div>
+                        )}
 
+                        {analysis.zeroIPerspective && (
                         <div>
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-primary" />
@@ -917,15 +951,16 @@ export default function ManuscriptWorkspace() {
                             <p className="text-xs text-muted-foreground">{analysis.zeroIPerspective.feedback}</p>
                           </Card>
                         </div>
+                        )}
 
-                        {analysis.criticalIssues.length > 0 && (
+                        {criticalIssues.length > 0 && (
                           <div>
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                               <AlertTriangle className="w-4 h-4 text-destructive" />
-                              Critical Issues ({analysis.criticalIssues.length})
+                              Critical Issues ({criticalIssues.length})
                             </h3>
                             <div className="space-y-2">
-                              {analysis.criticalIssues.map((issue, i) => (
+                              {criticalIssues.map((issue, i) => (
                                 <Card key={i} className="p-3">
                                   <div className="flex items-start justify-between gap-2 mb-1">
                                     <span className="text-sm font-medium">{issue.title}</span>
@@ -936,6 +971,25 @@ export default function ManuscriptWorkspace() {
                                 </Card>
                               ))}
                             </div>
+                          </div>
+                        )}
+
+                        {analysis.strengthsToMaintain && analysis.strengthsToMaintain.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-sage" />
+                              Strengths to Maintain
+                            </h3>
+                            <Card className="p-3">
+                              <ul className="space-y-2">
+                                {analysis.strengthsToMaintain.map((strength, i) => (
+                                  <li key={i} className="text-xs flex items-start gap-2">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-sage shrink-0 mt-0.5" />
+                                    <span className="text-foreground">{strength}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </Card>
                           </div>
                         )}
                       </div>
@@ -971,7 +1025,7 @@ export default function ManuscriptWorkspace() {
                                 onClick={() => setFeedbackFilter(feedbackFilter === section ? null : section)}
                                 data-testid={`filter-feedback-${section.toLowerCase().replace(/[^a-z]/g, "-")}`}
                               >
-                                {section} ({analysis.detailedFeedback.filter((f) => f.section === section).length})
+                                {section} ({detailedFeedback.filter((f) => f.section === section).length})
                               </Badge>
                             ))}
                           </div>
@@ -1006,9 +1060,12 @@ export default function ManuscriptWorkspace() {
                                   onClick={() => handleFeedbackClick(fb.finding, fb.section)}
                                   data-testid={`card-feedback-${fb.section.toLowerCase().replace(/[^a-z]/g, "-")}-${i}`}
                                 >
-                                  {feedbackFilter !== null && (
-                                    <Badge variant="outline" className="mb-2 text-xs">{fb.section}</Badge>
-                                  )}
+                                  <div className="flex items-start justify-between gap-2 mb-1 flex-wrap">
+                                    {feedbackFilter !== null && (
+                                      <Badge variant="outline" className="text-xs">{fb.section}</Badge>
+                                    )}
+                                    {fb.severity && <SeverityBadge severity={fb.severity} />}
+                                  </div>
                                   <p className="text-sm font-medium mb-1">{fb.finding}</p>
                                   <p className="text-sm text-sage-dark mb-2">{fb.suggestion}</p>
                                   <div className="bg-primary/5 rounded-md p-2">
@@ -1063,7 +1120,7 @@ export default function ManuscriptWorkspace() {
                               onClick={() => setActionFilter(null)}
                               data-testid="filter-actions-all"
                             >
-                              All ({analysis.actionItems.length})
+                              All ({actionItems.length})
                             </Badge>
                             {actionSections.map((section) => (
                               <Badge
@@ -1080,7 +1137,7 @@ export default function ManuscriptWorkspace() {
                         )}
 
                         {filteredActions.map((item, i) => {
-                          const globalIndex = analysis.actionItems.indexOf(item);
+                          const globalIndex = actionItems.indexOf(item);
                           return (
                             <div
                               key={globalIndex}
@@ -1116,12 +1173,12 @@ export default function ManuscriptWorkspace() {
                       <div className="space-y-3">
                         <h3 className="text-sm font-semibold flex items-center gap-2">
                           <GraduationCap className="w-4 h-4 text-primary" />
-                          Learning Resources ({analysis.learnLinks.length})
+                          Learning Resources ({(analysis.learnLinks || []).length})
                         </h3>
                         <p className="text-xs text-muted-foreground">
                           Based on your manuscript's areas for improvement, here are UMA resources to strengthen your writing.
                         </p>
-                        {analysis.learnLinks.map((link, i) => (
+                        {(analysis.learnLinks || []).map((link, i) => (
                           <a
                             key={i}
                             href={link.url || "#"}
@@ -1152,7 +1209,7 @@ export default function ManuscriptWorkspace() {
                             </Card>
                           </a>
                         ))}
-                        {analysis.learnLinks.length === 0 && (
+                        {(!analysis.learnLinks || analysis.learnLinks.length === 0) && (
                           <p className="text-sm text-muted-foreground text-center py-4">No learning resources available.</p>
                         )}
                       </div>
