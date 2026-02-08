@@ -46,6 +46,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `GET /api/manuscripts` - Get current user's manuscripts
 - `GET /api/manuscripts/:id` - Get single manuscript (with ownership check)
 - `POST /api/manuscripts` - Create manuscript
+- `DELETE /api/manuscripts/:id` - Delete a manuscript (with ownership check)
 - `POST /api/manuscripts/:id/extract` - Extract text from uploaded manuscript file
 - `POST /api/manuscripts/:id/paste-text` - Save pasted manuscript text directly
 - `POST /api/manuscripts/:id/analyze` - Run AI analysis using OpenAI + UMA framework

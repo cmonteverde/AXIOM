@@ -97,6 +97,20 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/manuscripts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      await storage.deleteManuscript(manuscript.id);
+      return res.json({ success: true });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/manuscripts/:id/extract", isAuthenticated, async (req: any, res) => {
     try {
       const manuscript = await storage.getManuscript(req.params.id);

@@ -13,6 +13,7 @@ export interface IStorage {
   createManuscript(manuscript: InsertManuscript): Promise<Manuscript>;
   updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string, fullText?: string): Promise<Manuscript | undefined>;
   updateManuscriptAnalysis(id: string, analysisJson: any, analysisStatus: string, readinessScore?: number): Promise<Manuscript | undefined>;
+  deleteManuscript(id: string): Promise<void>;
   deleteManuscriptsByUserId(userId: string): Promise<void>;
 }
 
@@ -77,6 +78,10 @@ export class DatabaseStorage implements IStorage {
     }
     const [manuscript] = await db.update(manuscripts).set(updateData).where(eq(manuscripts.id, id)).returning();
     return manuscript;
+  }
+
+  async deleteManuscript(id: string): Promise<void> {
+    await db.delete(manuscripts).where(eq(manuscripts.id, id));
   }
 
   async deleteManuscriptsByUserId(userId: string): Promise<void> {

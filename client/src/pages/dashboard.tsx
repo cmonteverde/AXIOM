@@ -118,6 +118,9 @@ export default function Dashboard() {
     }
   }, [user, navigate]);
 
+  const { toast } = useToast();
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const { data: manuscripts = [], isLoading: manuscriptsLoading } = useQuery<Manuscript[]>({
     queryKey: ["/api/manuscripts"],
     enabled: isAuthenticated,
@@ -127,6 +130,24 @@ export default function Dashboard() {
         return 3000;
       }
       return false;
+    },
+  });
+
+  const deleteManuscriptMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/manuscripts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
+      toast({ title: "Manuscript deleted" });
+      setDeleteConfirmId(null);
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        window.location.href = "/api/login";
+        return;
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -258,39 +279,80 @@ export default function Dashboard() {
                   {activeManuscripts.map((m) => (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between p-3 rounded-md border border-border hover-elevate cursor-pointer"
-                      onClick={() => navigate(`/manuscript/${m.id}`)}
+                      className="relative"
                       data-testid={`card-manuscript-${m.id}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="w-5 h-5 text-primary shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{m.title || "Untitled"}</p>
-                          {m.stage && m.stage !== "draft" && (
-                            <p className="text-xs text-muted-foreground">{m.stage}</p>
-                          )}
-                          {m.previewText && (
-                            <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">{m.previewText}</p>
-                          )}
+                      {deleteConfirmId === m.id ? (
+                        <div className="flex items-center justify-between p-3 rounded-md border border-destructive/40 bg-destructive/5">
+                          <p className="text-sm text-foreground">Delete this manuscript?</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(null)}
+                              data-testid={`button-cancel-delete-${m.id}`}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteManuscriptMutation.mutate(m.id)}
+                              disabled={deleteManuscriptMutation.isPending}
+                              data-testid={`button-confirm-delete-${m.id}`}
+                            >
+                              {deleteManuscriptMutation.isPending ? "Deleting..." : "Delete"}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {m.extractionStatus === "processing" && (
-                          <span className="text-xs text-primary">Extracting...</span>
-                        )}
-                        {m.analysisStatus === "processing" && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Analyzing...
-                          </Badge>
-                        )}
-                        {m.analysisStatus === "completed" && m.readinessScore !== null && (
-                          <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
-                        )}
-                        {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
-                          <Badge variant="outline" className="text-xs">Not analyzed</Badge>
-                        )}
-                      </div>
+                      ) : (
+                        <div
+                          className="flex items-center justify-between p-3 rounded-md border border-border hover-elevate cursor-pointer"
+                          onClick={() => navigate(`/manuscript/${m.id}`)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <FileText className="w-5 h-5 text-primary shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{m.title || "Untitled"}</p>
+                              {m.stage && m.stage !== "draft" && (
+                                <p className="text-xs text-muted-foreground">{m.stage}</p>
+                              )}
+                              {m.previewText && (
+                                <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">{m.previewText}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {m.extractionStatus === "processing" && (
+                              <span className="text-xs text-primary">Extracting...</span>
+                            )}
+                            {m.analysisStatus === "processing" && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                Analyzing...
+                              </Badge>
+                            )}
+                            {m.analysisStatus === "completed" && m.readinessScore !== null && (
+                              <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
+                            )}
+                            {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
+                              <Badge variant="outline" className="text-xs">Not analyzed</Badge>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="ml-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(m.id);
+                              }}
+                              data-testid={`button-delete-manuscript-${m.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
