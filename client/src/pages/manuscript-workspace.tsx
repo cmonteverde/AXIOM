@@ -711,7 +711,7 @@ export default function ManuscriptWorkspace() {
       <AnalysisOptionsDialog
         open={showAnalysisDialog}
         onOpenChange={setShowAnalysisDialog}
-        defaultHelpTypes={manuscript.helpTypes || ALL_HELP_TYPES}
+        defaultHelpTypes={manuscript.helpTypes && manuscript.helpTypes.length > 0 ? manuscript.helpTypes : ALL_HELP_TYPES}
         onConfirm={(helpTypes) => analyzeMutation.mutate(helpTypes)}
         isAnalyzing={analyzeMutation.isPending}
       />

@@ -55,12 +55,11 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 1. Welcome screen -> Sign In (Replit Auth)
 2. Profile Setup (3 steps): Research Level -> Primary Field -> Learning Mode
 3. Dashboard with gamification stats, user profile info, sign out
-4. New Manuscript flow (3 steps): Stage -> Help Types -> Upload or Paste
+4. New Manuscript: Upload file or paste text (single step) -> redirects to manuscript workspace
 5. File upload (up to 50MB) -> Object Storage -> Text extraction (PDF/DOCX/TXT) -> Full text + preview saved
 6. Or paste manuscript sections directly -> Text saved
-7. Dashboard -> Click manuscript -> Split-view workspace (/manuscript/:id)
-8. Workspace: Left (60%) manuscript text, Right (40%) tabbed analysis panel
-9. Run SAGE Analysis -> OpenAI analyzes using UMA -> Results stored in DB
+7. Manuscript workspace (/manuscript/:id): Split-view, left (60%) text, right (40%) analysis panel
+8. Click "Run SAGE Analysis" -> choose focus areas -> OpenAI analyzes using UMA -> Results stored in DB
 
 ## AI Analysis (UMA Framework — Dual Engine)
 - Uses OpenAI GPT-4o with dual-engine UMA system prompt

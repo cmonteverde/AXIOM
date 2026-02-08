@@ -363,7 +363,7 @@ Analyze the manuscript and return a JSON object with this exact structure:
   ]
 }
 
-Be exhaustive, specific, constructive, and ground ALL feedback in UMA principles. Quote specific text from the manuscript whenever possible. Every piece of feedback should be a learning opportunity — explain WHY using the UMA standard and cite the relevant authority (ICMJE, EQUATOR, APA, Nature, COPE, etc.). The manuscript stage is: "${manuscript.stage}". The user requested help with: ${selectedHelpTypes.join(", ") || "all areas"}.`;
+Be exhaustive, specific, constructive, and ground ALL feedback in UMA principles. Quote specific text from the manuscript whenever possible. Every piece of feedback should be a learning opportunity — explain WHY using the UMA standard and cite the relevant authority (ICMJE, EQUATOR, APA, Nature, COPE, etc.). The manuscript stage is: "${manuscript.stage || "draft"}". The user requested help with: ${selectedHelpTypes.join(", ") || "all areas"}.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

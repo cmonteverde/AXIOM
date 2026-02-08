@@ -9,8 +9,8 @@ export const manuscripts = pgTable("manuscripts", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 255 }).notNull(),
   title: text("title"),
-  stage: text("stage").notNull(),
-  helpTypes: text("help_types").array().notNull(),
+  stage: text("stage").default("draft"),
+  helpTypes: text("help_types").array().default(sql`'{}'::text[]`),
   fileName: text("file_name"),
   fileKey: text("file_key"),
   fullText: text("full_text"),
@@ -33,6 +33,8 @@ export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   extractionStatus: true,
   analysisJson: true,
   analysisStatus: true,
+  stage: true,
+  helpTypes: true,
 });
 
 export type InsertManuscript = z.infer<typeof insertManuscriptSchema>;
