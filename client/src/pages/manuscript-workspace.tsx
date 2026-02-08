@@ -37,6 +37,7 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  ExternalLink,
 } from "lucide-react";
 
 const HELP_TYPE_GROUPS = [
@@ -78,6 +79,7 @@ interface AnalysisData {
     methods?: ScoreCategory;
     results?: ScoreCategory;
     discussion?: ScoreCategory;
+    ethicsAndTransparency?: ScoreCategory;
     writingQuality?: ScoreCategory;
     zeroIPerspective?: ScoreCategory;
   };
@@ -92,6 +94,9 @@ interface AnalysisData {
     finding: string;
     suggestion: string;
     whyItMatters: string;
+    resourceTopic?: string;
+    resourceUrl?: string;
+    resourceSource?: string;
   }>;
   actionItems: Array<{
     task: string;
@@ -373,6 +378,7 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
     { key: "methods", label: "Methods", data: breakdown.methods },
     { key: "results", label: "Results", data: breakdown.results },
     { key: "discussion", label: "Discussion", data: breakdown.discussion },
+    { key: "ethicsAndTransparency", label: "Ethics & Transparency", data: breakdown.ethicsAndTransparency },
     { key: "writingQuality", label: "Writing Quality", data: breakdown.writingQuality },
     { key: "zeroIPerspective", label: "Zero-I Perspective", data: breakdown.zeroIPerspective },
   ].filter((c) => c.data);
@@ -1009,7 +1015,20 @@ export default function ManuscriptWorkspace() {
                                     <p className="text-xs font-medium text-primary mb-0.5">Why it Matters (UMA)</p>
                                     <p className="text-xs text-muted-foreground">{fb.whyItMatters}</p>
                                   </div>
-                                  <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                                  {fb.resourceUrl && (
+                                    <a
+                                      href={fb.resourceUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-xs text-primary mt-2 flex items-center gap-1 hover:underline"
+                                      data-testid={`link-resource-${fb.section.toLowerCase().replace(/[^a-z]/g, "-")}-${i}`}
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      Learn More: {fb.resourceSource || "Reference"}
+                                    </a>
+                                  )}
+                                  <p className="text-xs text-primary mt-1 flex items-center gap-1">
                                     <BookOpen className="w-3 h-3" />
                                     Click to locate in manuscript
                                   </p>

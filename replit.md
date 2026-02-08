@@ -62,17 +62,20 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 8. Workspace: Left (60%) manuscript text, Right (40%) tabbed analysis panel
 9. Run SAGE Analysis -> OpenAI analyzes using UMA -> Results stored in DB
 
-## AI Analysis (UMA Framework)
-- Uses OpenAI GPT-4o with UMA system prompt
-- Checks for Structured 5-Move Abstract (Hook, Gap, Approach, Findings, Impact)
-- Checks for Zero-I Perspective (no I/we/our/us/my)
-- Returns structured JSON: readinessScore, scoreBreakdown (8 categories with weighted scores), criticalIssues, detailedFeedback, actionItems, abstractAnalysis, zeroIPerspective, learnLinks
-- Comprehensive section-by-section analysis: 15-30+ feedback items, 15-25 action items per analysis
-- Score breakdown shows weighted contributions: Title/Keywords (10%), Abstract (15%), Introduction (10%), Methods (15%), Results (15%), Discussion (15%), Writing Quality (10%), Zero-I (10%)
+## AI Analysis (UMA Framework — Dual Engine)
+- Uses OpenAI GPT-4o with dual-engine UMA system prompt
+- **UMA 1.0 (Primary Logic Engine)**: Recipe rules, mirror principles, CaRS model, Zero-I perspective, 5-Move abstract, writing standards — evaluates manuscript text
+- **UMA v2.0 (Educational Link Engine)**: Every suggestion cross-referenced with authoritative sources (ICMJE, EQUATOR, APA, COPE, Nature, Springer, etc.)
+- Each feedback item includes: finding, suggestion, whyItMatters (UMA pedagogy), resourceUrl (direct link to authority), resourceSource
+- Checks for: Structured 5-Move Abstract, Zero-I Perspective, IRB approval, AI disclosure, data availability, COI declaration
+- Returns structured JSON: readinessScore, scoreBreakdown (9 categories with weighted scores), criticalIssues, detailedFeedback (with resourceUrl/resourceSource), actionItems, abstractAnalysis, zeroIPerspective, learnLinks
+- Score breakdown weighted contributions: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), Zero-I (10%)
+- Ethics & Transparency category specifically checks IRB approvals, AI disclosure statements, COI declarations, data availability
 - Analysis options dialog lets users select focus areas before each analysis
 - Analysis stored in manuscripts.analysis_json (JSONB)
 - Loaded from DB on subsequent visits (no re-analysis needed)
 - Auto-re-extraction triggers when fullText is null but fileKey exists (for legacy manuscripts)
+- LEARN_LINK_URLS map covers 21 topic areas with curated URLs from UMA v2.0 references
 
 ## State Management
 - Authentication managed via Replit Auth sessions (server-side)
