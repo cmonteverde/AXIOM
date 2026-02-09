@@ -10,14 +10,15 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Authentication**: Replit Auth (OIDC with Google, GitHub, Apple, email)
 - **File Storage**: Replit App Storage (GCS-backed object storage)
 - **AI**: OpenAI API (process.env.OPENAI_API_KEY) for manuscript analysis using UMA framework
-- **Font**: Inter (sans-serif)
-- **Color Palette**:
-  - Primary Purple: #7C3AED (actions, headings, brand)
-  - Lavender Background: #F5F1FB (UI wash / page background)
-  - Sage Green: #9EBFA6 (learning, progress, success states)
-  - Insight Gold: #F0C861 (highlights only, used sparingly)
-  - Text Dark: #1F2937 (primary text)
-  - Muted Gray: #6B7280 (secondary text)
+- **Font**: Plus Jakarta Sans (primary), Inter (fallback), Source Serif 4 (serif), JetBrains Mono (monospace)
+- **Color Palette** (modernized, desaturated for readability):
+  - Primary Purple: hsl(258, 70%, 55%) — actions, headings, brand
+  - Background: hsl(250, 20%, 98%) — near-white with subtle cool tone
+  - Card: pure white — clean card surfaces
+  - Sage Green: #4ADE80 (learning, progress, success states)
+  - Insight Gold: #FACC15 (highlights only, used sparingly)
+  - Foreground: hsl(224, 30%, 14%) — rich dark text for readability
+  - Muted Foreground: hsl(220, 10%, 42%) — secondary text with good contrast
 - **Logo**: attached_assets/SAGE_logo_1770411503546.png (shown on welcome screen)
 
 ## Project Structure

@@ -87,7 +87,7 @@ function DeleteAllDataButton() {
       
       {showDangerZone && (
         <div className="absolute top-full right-0 mt-2 z-50 w-64 animate-in fade-in slide-in-from-top-1">
-          <div className="bg-red-900/95 backdrop-blur-sm text-white rounded-md p-3 text-xs shadow-lg border border-red-700/50">
+          <div className="bg-destructive/95 backdrop-blur-sm text-destructive-foreground rounded-md p-3 text-xs shadow-lg border border-destructive/50">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-gold shrink-0" />
               <div>

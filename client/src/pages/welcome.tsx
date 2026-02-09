@@ -37,7 +37,7 @@ export default function Welcome() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
       <MouseFireworks />
-      <Card className="w-full max-w-lg p-8 border-2 border-primary/20 bg-white/80 backdrop-blur-sm relative z-10" style={{ borderStyle: "dashed" }}>
+      <Card className="w-full max-w-lg p-8 border border-primary/15 bg-card/90 backdrop-blur-sm relative z-10">
         <div className="flex flex-col items-center text-center">
           <img src={sageLogoPath} alt="SAGE Logo" className="w-48 h-48 mb-6 object-contain" />
 
