@@ -444,7 +444,7 @@ export default function Welcome() {
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((item, i) => (
               <AccordionItem key={i} value={`faq-${i}`} data-testid={`faq-item-${i}`}>
-                <AccordionTrigger className="text-sm font-medium text-left">
+                <AccordionTrigger className="text-sm font-medium text-left" data-testid={`button-faq-${i}`}>
                   {item.q}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
