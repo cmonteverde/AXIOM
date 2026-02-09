@@ -192,14 +192,13 @@ export default function Welcome() {
         data-testid="nav-bar"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center gap-2.5">
-            <img src={sageLogoPath} alt="SAGE" className="w-10 h-10 object-contain" />
-            <span className="text-lg font-bold tracking-tight" data-testid="text-nav-logo">SAGE</span>
+          <div className="flex items-center" data-testid="text-nav-logo">
+            <img src={sageLogoPath} alt="SAGE" className="w-14 h-14 object-contain" />
           </div>
           <div className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-features">Features</a>
-            <a href="#benefits" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-benefits">Benefits</a>
-            <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-faq">FAQ</a>
+            <a href="#features" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-features">Features</a>
+            <a href="#benefits" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-benefits">Benefits</a>
+            <a href="#faq" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-faq">FAQ</a>
           </div>
           <Button
             data-testid="button-nav-login"
@@ -487,9 +486,8 @@ export default function Welcome() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center gap-2.5 mb-3">
-                <img src={sageLogoPath} alt="SAGE" className="w-9 h-9 object-contain" />
-                <span className="text-base font-bold tracking-tight">SAGE</span>
+              <div className="flex items-center mb-3">
+                <img src={sageLogoPath} alt="SAGE" className="w-12 h-12 object-contain" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Scholarly Assistant for Guided Excellence.
