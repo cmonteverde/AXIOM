@@ -3,13 +3,11 @@ import {
   FileSearch,
   BookOpen,
   Target,
-  Zap,
   Shield,
   GraduationCap,
   BarChart3,
   CheckCircle2,
   ArrowRight,
-  ChevronDown,
   Sparkles,
   ClipboardList,
   AlertTriangle,
@@ -31,6 +29,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import sageLogoPath from "@assets/SAGE_logo_transparent.png";
+import analysisScreenshot from "@assets/image_1770620881472.png";
+import dashboardScreenshot from "@assets/image_1770620853328.png";
 import { useEffect, useRef, useState } from "react";
 
 const FEATURES = [
@@ -139,6 +139,56 @@ const STATS = [
   { value: "7+", label: "Reporting Guidelines" },
   { value: "9", label: "Scoring Categories" },
 ];
+
+const PREVIEW_TABS = [
+  { id: "analysis", label: "Manuscript Analysis", icon: FileSearch },
+  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+] as const;
+
+function ProductPreview() {
+  const [activeTab, setActiveTab] = useState<"analysis" | "dashboard">("analysis");
+
+  return (
+    <div className="relative" data-testid="product-preview">
+      <div className="absolute -inset-4 bg-gradient-to-b from-primary/5 via-primary/3 to-transparent rounded-2xl blur-xl pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-center justify-center gap-1 mb-4 flex-wrap">
+          {PREVIEW_TABS.map((tab) => (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab(tab.id as "analysis" | "dashboard")}
+              data-testid={`button-preview-${tab.id}`}
+            >
+              <tab.icon className="w-3.5 h-3.5 mr-1.5" />
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+        <div className="rounded-md border border-border bg-card overflow-hidden shadow-lg">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/70 border-b border-border">
+            <div className="w-2.5 h-2.5 rounded-full bg-destructive/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-chart-3/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-chart-2/70" />
+            <span className="text-[11px] text-foreground/50 ml-2">
+              {activeTab === "analysis" ? "sage — manuscript workspace" : "sage — dashboard"}
+            </span>
+          </div>
+          <div className="relative">
+            <img
+              src={activeTab === "analysis" ? analysisScreenshot : dashboardScreenshot}
+              alt={activeTab === "analysis" ? "SAGE manuscript analysis workspace showing split-view with manuscript text and AI-powered feedback panel" : "SAGE dashboard with gamification stats, manuscripts list, and leaderboard"}
+              className="w-full h-auto block"
+              data-testid={`img-preview-${activeTab}`}
+            />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Welcome() {
   const [, navigate] = useLocation();
@@ -253,66 +303,12 @@ export default function Welcome() {
         </div>
       </section>
 
-      <section className="pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="pb-20 px-4 sm:px-6 lg:px-8" data-testid="section-product-preview">
         <div className="max-w-5xl mx-auto">
-          <Card className="p-6 sm:p-8 overflow-hidden relative">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-destructive/80" />
-                  <div className="w-3 h-3 rounded-full bg-chart-3" />
-                  <div className="w-3 h-3 rounded-full bg-chart-2" />
-                  <span className="text-xs text-muted-foreground ml-2">manuscript-workspace</span>
-                </div>
-                <div className="bg-muted/50 rounded-md p-4 sm:p-5 space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold">Hardware Prototyping for Digital Systems: A Review</span>
-                  </div>
-                  <div className="space-y-2.5 text-xs text-muted-foreground leading-relaxed">
-                    <p><span className="font-semibold text-foreground">INTRODUCTION</span></p>
-                    <p>Hardware prototyping is fundamental to the development of digital systems, serving as a bridge between theoretical design and practical implementation. This review examines the current landscape of prototyping methodologies...</p>
-                    <p>Recent advances in field-programmable gate arrays (FPGAs) and system-on-chip (SoC) designs have expanded the scope of what is achievable during the prototyping phase. These technologies enable rapid iteration and testing of complex digital circuits...</p>
-                  </div>
-                </div>
-              </div>
-              <div className="lg:w-[340px] shrink-0">
-                <div className="bg-muted/50 rounded-md p-4 sm:p-5 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">SAGE Analysis</span>
-                    <Badge variant="secondary" className="text-xs">Score: 72%</Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { label: "Abstract", score: 85, color: "bg-chart-2" },
-                      { label: "Methods", score: 60, color: "bg-chart-3" },
-                      { label: "Introduction", score: 78, color: "bg-chart-2" },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">{item.label}</span>
-                          <span className="font-medium">{item.score}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className={`h-full ${item.color} rounded-full`} style={{ width: `${item.score}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t border-border pt-3 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">CRITICAL:</span> Methods section lacks reproducibility detail (Nature standard).</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Info className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">WHY:</span> Reviewers cannot replicate findings without precise protocol descriptions.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <div className="text-center mb-6">
+            <p className="text-sm text-muted-foreground">See SAGE in action</p>
+          </div>
+          <ProductPreview />
         </div>
       </section>
 
