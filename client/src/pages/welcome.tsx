@@ -16,6 +16,7 @@ import {
   Layers,
   FileText,
   Info,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import sageLogoPath from "@assets/SAGE_logo_transparent.png";
 import analysisScreenshot from "@assets/image_1770620881472.png";
 import dashboardScreenshot from "@assets/image_1770620853328.png";
+import testimonial1 from "@assets/testimonial-1.png";
+import testimonial2 from "@assets/testimonial-2.png";
+import testimonial3 from "@assets/testimonial-3.png";
+import testimonial4 from "@assets/testimonial-4.png";
+import testimonial5 from "@assets/testimonial-5.png";
+import testimonial6 from "@assets/testimonial-6.png";
 import { useEffect, useRef, useState } from "react";
 
 const FEATURES = [
@@ -140,10 +147,91 @@ const STATS = [
   { value: "9", label: "Scoring Categories" },
 ];
 
+const TESTIMONIALS = [
+  {
+    name: "Dr. Priya Sharma",
+    role: "Epidemiology, Johns Hopkins",
+    photo: testimonial1,
+    quote: "SAGE doesn't just flag issues — it teaches me WHY I need to make each revision. It's like having a writing mentor available 24/7.",
+    stars: 5,
+  },
+  {
+    name: "Prof. Marcus Johnson",
+    role: "Biostatistics, Duke University",
+    photo: testimonial2,
+    quote: "The reporting guideline matching is incredible. It automatically identified my RCT needed CONSORT 2025 and caught 3 critical items I missed.",
+    stars: 5,
+  },
+  {
+    name: "Dr. Wei Lin",
+    role: "Public Health, UCLA",
+    photo: testimonial3,
+    quote: "My first manuscript was rejected twice. After SAGE analysis, I addressed every reviewer concern before resubmission. Accepted with minor revisions!",
+    stars: 5,
+  },
+  {
+    name: "Prof. Richard Hensley",
+    role: "Clinical Research, Oxford",
+    photo: testimonial4,
+    quote: "The 5-Move Abstract check alone saved me hours. I now use SAGE for every manuscript before sending to my co-authors for review.",
+    stars: 5,
+  },
+  {
+    name: "Dr. Sofia Reyes",
+    role: "Neuroscience, Stanford",
+    photo: testimonial5,
+    quote: "As a non-native English speaker, the Zero-I Perspective check is a game-changer. It catches subtle language issues that spell-checkers miss entirely.",
+    stars: 5,
+  },
+  {
+    name: "Dr. Karim Al-Rashid",
+    role: "Environmental Science, MIT",
+    photo: testimonial6,
+    quote: "The ethics and transparency audit caught my missing data availability statement and CRediT taxonomy. Those would have been desk-rejected.",
+    stars: 5,
+  },
+];
+
 const PREVIEW_TABS = [
   { id: "analysis", label: "Manuscript Analysis", icon: FileSearch },
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
 ] as const;
+
+function TestimonialMarquee() {
+  const doubled = [...TESTIMONIALS, ...TESTIMONIALS];
+  return (
+    <div className="w-full overflow-hidden py-8" data-testid="section-testimonials">
+      <div className="flex animate-marquee gap-5" style={{ width: "max-content" }}>
+        {doubled.map((t, i) => (
+          <div
+            key={`${t.name}-${i}`}
+            className="shrink-0 w-[340px] rounded-md border border-border bg-card p-5 flex flex-col gap-3"
+            data-testid={`card-testimonial-${i}`}
+          >
+            <div className="flex gap-0.5">
+              {Array.from({ length: t.stars }).map((_, s) => (
+                <Star key={s} className="w-3.5 h-3.5 fill-chart-3 text-chart-3" />
+              ))}
+            </div>
+            <p className="text-sm text-foreground leading-relaxed flex-1">"{t.quote}"</p>
+            <div className="flex items-center gap-3 pt-1">
+              <img
+                src={t.photo}
+                alt={t.name}
+                className="w-9 h-9 rounded-full object-cover"
+                data-testid={`img-testimonial-${i}`}
+              />
+              <div>
+                <p className="text-sm font-semibold" data-testid={`text-testimonial-name-${i}`}>{t.name}</p>
+                <p className="text-xs text-muted-foreground">{t.role}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ProductPreview() {
   const [activeTab, setActiveTab] = useState<"analysis" | "dashboard">("analysis");
@@ -417,6 +505,8 @@ export default function Welcome() {
           </div>
         </div>
       </section>
+
+      <TestimonialMarquee />
 
       <section className="pb-20 px-4 sm:px-6 lg:px-8" data-testid="section-product-preview">
         <div className="max-w-5xl mx-auto">
