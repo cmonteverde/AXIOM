@@ -19,7 +19,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
   - Insight Gold: #FACC15 (highlights only, used sparingly)
   - Foreground: hsl(224, 30%, 14%) — rich dark text for readability
   - Muted Foreground: hsl(220, 10%, 42%) — secondary text with good contrast
-- **Logo**: attached_assets/SAGE_logo_1770411503546.png (shown on welcome screen)
+- **Logo**: attached_assets/SAGE_logo_transparent.png (transparent background, shown on welcome screen)
 
 ## Project Structure
 - `client/src/pages/` - Page components (welcome, profile-setup, dashboard, new-manuscript, manuscript-workspace)
