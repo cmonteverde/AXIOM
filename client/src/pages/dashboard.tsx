@@ -8,12 +8,41 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
-import { Flame, Trophy, FileText, Zap, BarChart3, Upload, Trash2, GraduationCap, AlertTriangle, LogOut, Loader2 } from "lucide-react";
+import {
+  Flame,
+  Trophy,
+  FileText,
+  Zap,
+  BarChart3,
+  Upload,
+  Trash2,
+  GraduationCap,
+  AlertTriangle,
+  LogOut,
+  Loader2,
+  Plus,
+  Star,
+  TrendingUp,
+  Target,
+  ChevronRight,
+  Award,
+  Sparkles,
+} from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Manuscript } from "@shared/schema";
+import sageLogoPath from "@assets/SAGE_logo_transparent.png";
 
 function getLevelThreshold(level: number) {
   return level * 1000;
+}
+
+function getLevelTitle(level: number) {
+  if (level >= 10) return "Distinguished Scholar";
+  if (level >= 8) return "Senior Researcher";
+  if (level >= 6) return "Research Fellow";
+  if (level >= 4) return "Graduate Scholar";
+  if (level >= 2) return "Research Apprentice";
+  return "Novice Researcher";
 }
 
 function DeleteAllDataButton() {
@@ -82,14 +111,14 @@ function DeleteAllDataButton() {
         data-testid="button-delete-all"
       >
         <Trash2 className="w-4 h-4" />
-        {isHolding ? `Hold to Delete... ${Math.round(progress)}%` : "Delete All Data"}
+        {isHolding ? `Hold... ${Math.round(progress)}%` : "Delete All Data"}
       </button>
-      
+
       {showDangerZone && (
         <div className="absolute top-full right-0 mt-2 z-50 w-64 animate-in fade-in slide-in-from-top-1">
           <div className="bg-destructive/95 backdrop-blur-sm text-destructive-foreground rounded-md p-3 text-xs shadow-lg border border-destructive/50">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-gold shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               <div>
                 <p className="font-bold">DANGER ZONE</p>
                 <p>Hold button for 3 seconds to permanently delete ALL data. This cannot be undone!</p>
@@ -172,22 +201,27 @@ export default function Dashboard() {
   const progressPct = nextLevelXp > 0 ? Math.min((xp / nextLevelXp) * 100, 100) : 0;
   const activeManuscripts = manuscripts.filter((m) => m.status === "active");
   const displayName = user.firstName || user.email || "Researcher";
+  const analyzedCount = manuscripts.filter(m => m.analysisStatus === "completed").length;
+  const levelTitle = getLevelTitle(level);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-[90%] lg:max-w-6xl mx-auto p-4 pb-12">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            {user.profileImageUrl && (
-              <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full" />
-            )}
-            <span className="text-sm text-muted-foreground">Welcome, {displayName}</span>
+      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16">
+          <div className="flex items-center" data-testid="text-dashboard-logo">
+            <img src={sageLogoPath} alt="SAGE" className="w-14 h-14 object-contain" data-testid="img-logo" />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              {user.profileImageUrl && (
+                <img src={user.profileImageUrl} alt="" className="w-7 h-7 rounded-full" data-testid="img-profile" />
+              )}
+              <span className="text-sm font-medium hidden sm:inline" data-testid="text-username">{displayName}</span>
+            </div>
             <DeleteAllDataButton />
             <a
               href="/api/logout"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors"
               data-testid="link-logout"
             >
               <LogOut className="w-4 h-4" />
@@ -195,7 +229,9 @@ export default function Dashboard() {
             </a>
           </div>
         </div>
+      </nav>
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-40 w-full rounded-md" />
@@ -203,208 +239,273 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <Card className="p-6 mb-6">
-              <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-6 h-6 text-primary" />
-                  <h1 className="text-xl font-bold text-primary" data-testid="text-dashboard-title">SAGE Dashboard</h1>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-muted-foreground block">Level {level}</span>
-                  <span className="text-xl font-bold text-primary" data-testid="text-xp">{xp} XP</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">Welcome back, {displayName}!</p>
-
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>Progress to Level {level + 1}</span>
-                <span>{xp}/{nextLevelXp}</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full mb-4 overflow-hidden">
-                <div
-                  className="h-full bg-sage rounded-full transition-all duration-500"
-                  style={{ width: `${progressPct}%` }}
-                  data-testid="progress-xp-bar"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gold/10 rounded-md p-6 text-center shadow-sm">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Flame className="w-6 h-6 text-gold-dark" />
-                    <span className="text-3xl font-bold text-gold-dark" data-testid="text-streak">{streak}</span>
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">Day Streak</p>
-                </div>
-                <div className="bg-sage/10 rounded-md p-6 text-center shadow-sm">
-                  <span className="text-3xl font-bold text-sage-dark" data-testid="text-achievements">0/50</span>
-                  <p className="text-sm font-medium text-muted-foreground mt-2">Achievements</p>
-                </div>
-                <div className="bg-primary/5 rounded-md p-6 text-center shadow-sm">
-                  <span className="text-3xl font-bold text-primary" data-testid="text-manuscript-count">{manuscripts.length}</span>
-                  <p className="text-sm font-medium text-muted-foreground mt-2">Manuscripts</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 mb-6 border border-dashed border-primary/20">
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg font-bold">Active Manuscripts</h2>
+            <section className="mb-8">
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1" data-testid="text-dashboard-title">
+                    Welcome back, {displayName}
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Continue strengthening your scholarly writing.
+                  </p>
                 </div>
                 <Button
-                  size="sm"
                   onClick={() => navigate("/manuscript/new")}
                   data-testid="button-new-manuscript"
                 >
-                  + New
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Manuscript
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <Card className="lg:col-span-2 p-6">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <GraduationCap className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-lg font-bold">Level {level}</h2>
+                        <Badge variant="secondary">{levelTitle}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{xp} / {nextLevelXp} XP to next level</p>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-3 bg-muted rounded-full mb-6 overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${progressPct}%` }}
+                      data-testid="progress-xp-bar"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 rounded-md bg-muted/50">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <Flame className="w-5 h-5 text-chart-3" />
+                        <span className="text-2xl font-bold" data-testid="text-streak">{streak}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Day Streak</p>
+                    </div>
+                    <div className="text-center p-4 rounded-md bg-muted/50">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        <span className="text-2xl font-bold" data-testid="text-xp">{xp}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Total XP</p>
+                    </div>
+                    <div className="text-center p-4 rounded-md bg-muted/50">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <Trophy className="w-5 h-5 text-chart-2" />
+                        <span className="text-2xl font-bold" data-testid="text-achievements">0</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Achievements</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-5 h-5 text-chart-3" />
+                    <h2 className="text-base font-bold">Daily Challenge</h2>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-4 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-semibold">Citation Detective</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">Add 3 recent papers to strengthen your literature review.</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>20 min</span>
+                        <span className="font-medium text-primary">+250 XP</span>
+                      </div>
+                      <Button size="sm" data-testid="button-accept-challenge">Accept</Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">This Week</h3>
+                    {[
+                      { label: "Sessions", value: "5", icon: BarChart3 },
+                      { label: "XP Earned", value: "+420", icon: TrendingUp },
+                      { label: "Analyzed", value: String(analyzedCount), icon: FileText },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <item.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">{item.label}</span>
+                        </div>
+                        <span className="text-sm font-semibold">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <h2 className="text-lg font-bold">Your Manuscripts</h2>
+                  {activeManuscripts.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">{activeManuscripts.length}</Badge>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/manuscript/new")}
+                  data-testid="button-new-manuscript-secondary"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Add
                 </Button>
               </div>
 
               {activeManuscripts.length === 0 ? (
-                <div className="flex flex-col items-center py-8 text-center">
-                  <Upload className="w-10 h-10 text-muted-foreground/40 mb-3" />
-                  <p className="text-sm text-muted-foreground mb-1">No manuscripts yet</p>
-                  <p className="text-xs text-muted-foreground mb-4">Upload your first manuscript to begin</p>
-                  <Button
-                    onClick={() => navigate("/manuscript/new")}
-                    data-testid="button-upload-manuscript"
-                  >
-                    Upload Manuscript
-                  </Button>
-                </div>
+                <Card className="p-8">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Upload className="w-7 h-7 text-primary" />
+                    </div>
+                    <h3 className="text-base font-semibold mb-1">No manuscripts yet</h3>
+                    <p className="text-sm text-muted-foreground mb-5 max-w-sm">
+                      Upload your first manuscript and let SAGE analyze it across 11 scholarly phases.
+                    </p>
+                    <Button
+                      onClick={() => navigate("/manuscript/new")}
+                      data-testid="button-upload-manuscript"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Manuscript
+                    </Button>
+                  </div>
+                </Card>
               ) : (
                 <div className="space-y-3">
                   {activeManuscripts.map((m) => (
-                    <div
-                      key={m.id}
-                      className="relative"
-                      data-testid={`card-manuscript-${m.id}`}
-                    >
+                    <div key={m.id} data-testid={`card-manuscript-${m.id}`}>
                       {deleteConfirmId === m.id ? (
-                        <div className="flex items-center justify-between p-3 rounded-md border border-destructive/40 bg-destructive/5">
-                          <p className="text-sm text-foreground">Delete this manuscript?</p>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setDeleteConfirmId(null)}
-                              data-testid={`button-cancel-delete-${m.id}`}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteManuscriptMutation.mutate(m.id)}
-                              disabled={deleteManuscriptMutation.isPending}
-                              data-testid={`button-confirm-delete-${m.id}`}
-                            >
-                              {deleteManuscriptMutation.isPending ? "Deleting..." : "Delete"}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex items-center justify-between p-3 rounded-md border border-border hover-elevate cursor-pointer"
-                          onClick={() => navigate(`/manuscript/${m.id}`)}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <FileText className="w-5 h-5 text-primary shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{m.title || "Untitled"}</p>
-                              {m.stage && m.stage !== "draft" && (
-                                <p className="text-xs text-muted-foreground">{m.stage}</p>
-                              )}
-                              {m.previewText && (
-                                <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">{m.previewText}</p>
-                              )}
+                        <Card className="p-4 border-destructive/40 bg-destructive/5">
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-sm">Delete this manuscript?</p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeleteConfirmId(null)}
+                                data-testid={`button-cancel-delete-${m.id}`}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteManuscriptMutation.mutate(m.id)}
+                                disabled={deleteManuscriptMutation.isPending}
+                                data-testid={`button-confirm-delete-${m.id}`}
+                              >
+                                {deleteManuscriptMutation.isPending ? "Deleting..." : "Delete"}
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {m.extractionStatus === "processing" && (
-                              <span className="text-xs text-primary">Extracting...</span>
-                            )}
-                            {m.analysisStatus === "processing" && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                Analyzing...
-                              </Badge>
-                            )}
-                            {m.analysisStatus === "completed" && m.readinessScore !== null && (
-                              <span className="text-sm font-semibold text-sage-dark">{m.readinessScore}%</span>
-                            )}
-                            {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
-                              <Badge variant="outline" className="text-xs">Not analyzed</Badge>
-                            )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="ml-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteConfirmId(m.id);
-                              }}
-                              data-testid={`button-delete-manuscript-${m.id}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-muted-foreground" />
-                            </Button>
+                        </Card>
+                      ) : (
+                        <Card
+                          className="p-4 hover-elevate cursor-pointer"
+                          onClick={() => navigate(`/manuscript/${m.id}`)}
+                          data-testid={`button-manuscript-${m.id}`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                <FileText className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold truncate">{m.title || "Untitled"}</p>
+                                {m.previewText && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{m.previewText}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {m.extractionStatus === "processing" && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Extracting
+                                </Badge>
+                              )}
+                              {m.analysisStatus === "processing" && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Analyzing
+                                </Badge>
+                              )}
+                              {m.analysisStatus === "completed" && m.readinessScore !== null && (
+                                <Badge variant="secondary" className="text-xs font-semibold">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  {m.readinessScore}%
+                                </Badge>
+                              )}
+                              {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
+                                <Badge variant="outline" className="text-xs">Not analyzed</Badge>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmId(m.id);
+                                }}
+                                data-testid={`button-delete-manuscript-${m.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            </div>
                           </div>
-                        </div>
+                        </Card>
                       )}
                     </div>
                   ))}
                 </div>
               )}
-            </Card>
+            </section>
 
-            <Card className="p-6 mb-6">
+            <section>
               <div className="flex items-center gap-2 mb-4">
-                <Zap className="w-5 h-5 text-gold-dark" />
-                <h2 className="text-lg font-bold">Today's Challenges</h2>
+                <Award className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-bold">Achievements</h2>
               </div>
-              <div className="p-4 rounded-md bg-gold/10 border border-gold/30">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-gold-dark mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold">Citation Detective</p>
-                      <p className="text-xs text-muted-foreground mb-1">Add 3 recent papers to strengthen lit review</p>
-                      <p className="text-xs text-muted-foreground">20 min · 250 XP</p>
-                    </div>
-                  </div>
-                  <Button size="sm" data-testid="button-accept-challenge">Accept</Button>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-bold">This Week</h2>
-              </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: "Sessions", value: "5", color: "" },
-                  { label: "XP Gained", value: "+420", color: "text-sage-dark" },
-                  { label: "Global Rank", value: "#147", color: "text-primary" },
-                  { label: "Field Rank", value: "#12", color: "text-primary" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-1">
-                    <span className="text-sm text-muted-foreground">{item.label}</span>
-                    <span className={`text-sm font-semibold ${item.color}`}>{item.value}</span>
-                  </div>
+                  { title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
+                  { title: "First Analysis", description: "Run your first SAGE analysis", icon: Sparkles, earned: analyzedCount > 0 },
+                  { title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
+                  { title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
+                ].map((achievement) => (
+                  <Card
+                    key={achievement.title}
+                    className={`p-4 ${achievement.earned ? "" : "opacity-50"}`}
+                    data-testid={`card-achievement-${achievement.title.toLowerCase().replace(/\s/g, "-")}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${achievement.earned ? "bg-primary/10" : "bg-muted"}`}>
+                        <achievement.icon className={`w-4.5 h-4.5 ${achievement.earned ? "text-primary" : "text-muted-foreground"}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{achievement.title}</p>
+                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
-              <Button
-                variant="outline"
-                className="w-full mt-4 border-primary text-primary"
-                data-testid="button-leaderboard"
-              >
-                Leaderboard
-              </Button>
-            </Card>
+            </section>
           </>
         )}
       </div>
