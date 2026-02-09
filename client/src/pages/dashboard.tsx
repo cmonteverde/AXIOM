@@ -31,6 +31,36 @@ import {
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Manuscript } from "@shared/schema";
 import sageLogoPath from "@assets/SAGE_logo_transparent.png";
+import leader1 from "@assets/leader-1.png";
+import leader2 from "@assets/leader-2.png";
+import leader3 from "@assets/leader-3.png";
+import leader4 from "@assets/leader-4.png";
+import leader5 from "@assets/leader-5.png";
+import leader6 from "@assets/leader-6.png";
+import leader7 from "@assets/leader-7.png";
+import leader8 from "@assets/leader-8.png";
+
+const LEADERBOARD_DATA = [
+  { rank: 1, name: "Dr. Amara Chen", field: "Epidemiology", xp: 12450, level: 12, streak: 34, photo: leader4 },
+  { rank: 2, name: "Prof. James Whitfield", field: "Biostatistics", xp: 11200, level: 11, streak: 28, photo: leader2 },
+  { rank: 3, name: "Dr. Sofia Rodriguez", field: "Public Health", xp: 10800, level: 10, streak: 21, photo: leader1 },
+  { rank: 4, name: "Dr. Kwame Asante", field: "Molecular Biology", xp: 9500, level: 9, streak: 19, photo: leader5 },
+  { rank: 5, name: "Dr. Priya Sharma", field: "Clinical Research", xp: 8900, level: 9, streak: 15, photo: leader6 },
+  { rank: 6, name: "Dr. Marco Espinoza", field: "Neuroscience", xp: 8200, level: 8, streak: 12, photo: leader7 },
+  { rank: 7, name: "Prof. Eleanor Hayes", field: "Psychology", xp: 7800, level: 8, streak: 10, photo: leader8 },
+  { rank: 8, name: "Dr. Ryan Okafor", field: "Pharmacology", xp: 7100, level: 7, streak: 8, photo: leader3 },
+];
+
+const TOP_SCHOLARS = [
+  { name: "Dr. Amara Chen", field: "Epidemiology", xp: 12450, manuscripts: 24, photo: leader4, badge: "Distinguished Scholar" },
+  { name: "Prof. James Whitfield", field: "Biostatistics", xp: 11200, manuscripts: 19, photo: leader2, badge: "Senior Researcher" },
+  { name: "Dr. Sofia Rodriguez", field: "Public Health", xp: 10800, manuscripts: 22, photo: leader1, badge: "Senior Researcher" },
+  { name: "Dr. Kwame Asante", field: "Molecular Biology", xp: 9500, manuscripts: 16, photo: leader5, badge: "Research Fellow" },
+  { name: "Dr. Priya Sharma", field: "Clinical Research", xp: 8900, manuscripts: 14, photo: leader6, badge: "Research Fellow" },
+  { name: "Dr. Marco Espinoza", field: "Neuroscience", xp: 8200, manuscripts: 13, photo: leader7, badge: "Research Fellow" },
+  { name: "Prof. Eleanor Hayes", field: "Psychology", xp: 7800, manuscripts: 11, photo: leader8, badge: "Graduate Scholar" },
+  { name: "Dr. Ryan Okafor", field: "Pharmacology", xp: 7100, manuscripts: 10, photo: leader3, badge: "Graduate Scholar" },
+];
 
 function getLevelThreshold(level: number) {
   return level * 1000;
@@ -476,7 +506,7 @@ export default function Dashboard() {
               )}
             </section>
 
-            <section>
+            <section className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Award className="w-5 h-5 text-primary" />
                 <h2 className="text-lg font-bold">Achievements</h2>
@@ -500,6 +530,146 @@ export default function Dashboard() {
                       <div>
                         <p className="text-sm font-semibold">{achievement.title}</p>
                         <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-chart-3" />
+                  <h2 className="text-lg font-bold">Leaderboard</h2>
+                </div>
+                <Badge variant="secondary" className="text-xs">Global</Badge>
+              </div>
+              <Card className="p-0 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-2">
+                  <div className="p-5">
+                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Top Researchers</h3>
+                    </div>
+                    <div className="space-y-1">
+                      {LEADERBOARD_DATA.slice(0, 5).map((entry) => (
+                        <div
+                          key={entry.rank}
+                          className="flex items-center justify-between gap-3 p-2.5 rounded-md hover-elevate"
+                          data-testid={`row-leaderboard-${entry.rank}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 text-center text-sm font-bold ${entry.rank <= 3 ? "text-chart-3" : "text-muted-foreground"}`}>
+                              {entry.rank}
+                            </span>
+                            <img src={entry.photo} alt={entry.name} className="w-8 h-8 rounded-full object-cover" />
+                            <div>
+                              <p className="text-sm font-medium">{entry.name}</p>
+                              <p className="text-xs text-muted-foreground">{entry.field}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <p className="text-sm font-bold">{entry.xp.toLocaleString()}</p>
+                              <p className="text-[10px] text-muted-foreground">XP</p>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Flame className="w-3 h-3 text-chart-3" />
+                              {entry.streak}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-5 bg-muted/30 border-l border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Your Standing</h3>
+                    <div className="flex items-center gap-3 p-3 rounded-md bg-primary/5 border border-primary/10 mb-5">
+                      <span className="w-6 text-center text-sm font-bold text-primary">#147</span>
+                      {user.profileImageUrl ? (
+                        <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <GraduationCap className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{displayName}</p>
+                        <p className="text-xs text-muted-foreground">{user.primaryField || "Researcher"}</p>
+                      </div>
+                      <div className="ml-auto text-right shrink-0">
+                        <p className="text-sm font-bold text-primary">{xp.toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">XP</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                          <span className="text-muted-foreground">To next rank (#146)</span>
+                          <span className="font-medium">320 XP needed</span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: "65%" }} />
+                        </div>
+                      </div>
+                      <div className="pt-2 space-y-2">
+                        {[
+                          { label: "Field Rank", value: "#12", sublabel: user.primaryField || "Your Field" },
+                          { label: "This Week", value: "+3 positions", sublabel: "Keep it up!" },
+                        ].map((stat) => (
+                          <div key={stat.label} className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm text-muted-foreground">{stat.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{stat.sublabel}</p>
+                            </div>
+                            <span className="text-sm font-semibold">{stat.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </section>
+
+            <section className="mb-8">
+              <div className="flex items-center gap-2 mb-5">
+                <Star className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-bold">Top Scholars This Month</h2>
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }} data-testid="scroll-top-scholars">
+                {TOP_SCHOLARS.map((scholar, i) => (
+                  <Card
+                    key={scholar.name}
+                    className="p-5 shrink-0 w-56"
+                    data-testid={`card-scholar-${i}`}
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative mb-3">
+                        <img
+                          src={scholar.photo}
+                          alt={scholar.name}
+                          className="w-16 h-16 rounded-full object-cover"
+                        />
+                        {i < 3 && (
+                          <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-chart-3 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-primary-foreground">#{i + 1}</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold truncate w-full">{scholar.name}</p>
+                      <p className="text-xs text-muted-foreground mb-2">{scholar.field}</p>
+                      <Badge variant="secondary" className="text-[10px] mb-3">{scholar.badge}</Badge>
+                      <div className="flex items-center justify-center gap-4 w-full">
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-primary">{scholar.xp.toLocaleString()}</p>
+                          <p className="text-[10px] text-muted-foreground">XP</p>
+                        </div>
+                        <div className="w-px h-6 bg-border" />
+                        <div className="text-center">
+                          <p className="text-sm font-bold">{scholar.manuscripts}</p>
+                          <p className="text-[10px] text-muted-foreground">Papers</p>
+                        </div>
                       </div>
                     </div>
                   </Card>
