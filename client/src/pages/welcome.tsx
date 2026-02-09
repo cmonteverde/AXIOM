@@ -31,7 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import sageLogoPath from "@assets/SAGE_logo_transparent.png";
 import analysisScreenshot from "@assets/image_1770620881472.png";
 import dashboardScreenshot from "@assets/image_1770620853328.png";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const FEATURES = [
   {
@@ -199,103 +199,111 @@ export default function Welcome() {
   const particlesRef = useRef<Array<{
     x: number; y: number; vx: number; vy: number;
     life: number; maxLife: number; size: number;
-    hue: number; saturation: number; lightness: number;
+    color: string;
   }>>([]);
   const animFrameRef = useRef<number>(0);
   const lastSpawnRef = useRef(0);
 
-  const spawnFirework = useCallback((x: number, y: number) => {
-    const now = Date.now();
-    if (now - lastSpawnRef.current < 30) return;
-    lastSpawnRef.current = now;
-
-    const count = 3 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1 + Math.random() * 2.5;
-      const hueChoice = Math.random();
-      let hue: number, sat: number, light: number;
-      if (hueChoice < 0.5) {
-        hue = 258 + (Math.random() - 0.5) * 20;
-        sat = 60 + Math.random() * 20;
-        light = 55 + Math.random() * 20;
-      } else if (hueChoice < 0.8) {
-        hue = 142;
-        sat = 50 + Math.random() * 20;
-        light = 50 + Math.random() * 20;
-      } else {
-        hue = 45;
-        sat = 80 + Math.random() * 15;
-        light = 55 + Math.random() * 15;
-      }
-      particlesRef.current.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 0.5,
-        life: 1,
-        maxLife: 0.6 + Math.random() * 0.6,
-        size: 1.5 + Math.random() * 2.5,
-        hue, saturation: sat, lightness: light,
-      });
-    }
-  }, []);
-
   useEffect(() => {
-    const canvas = canvasRef.current;
     const hero = heroRef.current;
-    if (!canvas || !hero) return;
+    const canvas = canvasRef.current;
+    if (!hero || !canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const resize = () => {
-      const rect = hero.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+    const syncSize = () => {
+      canvas.width = hero.offsetWidth;
+      canvas.height = hero.offsetHeight;
     };
-    resize();
-    window.addEventListener("resize", resize);
+    syncSize();
 
-    const onMove = (e: MouseEvent) => {
-      const rect = hero.getBoundingClientRect();
+    const ro = new ResizeObserver(syncSize);
+    ro.observe(hero);
+
+    const COLORS = [
+      "hsla(258, 70%, 60%,",
+      "hsla(258, 60%, 70%,",
+      "hsla(142, 55%, 55%,",
+      "hsla(142, 50%, 65%,",
+      "hsla(45, 85%, 60%,",
+      "hsla(280, 60%, 65%,",
+    ];
+
+    const spawnBurst = (cx: number, cy: number) => {
+      const count = 6 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 3;
+        particlesRef.current.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          maxLife: 0.5 + Math.random() * 0.8,
+          size: 2 + Math.random() * 3,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        });
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now();
+      if (now - lastSpawnRef.current < 40) return;
+      lastSpawnRef.current = now;
+
+      const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
-        spawnFirework(x, y);
-      }
+      spawnBurst(x, y);
     };
-    hero.addEventListener("mousemove", onMove);
 
-    let lastTime = performance.now();
-    const animate = (time: number) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.05);
-      lastTime = time;
+    hero.addEventListener("mousemove", handleMouseMove);
+
+    let prev = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min((now - prev) / 1000, 0.1);
+      prev = now;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const particles = particlesRef.current;
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
+
+      const arr = particlesRef.current;
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const p = arr[i];
         p.life -= dt / p.maxLife;
-        if (p.life <= 0) { particles.splice(i, 1); continue; }
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.3 * dt;
-        p.vx *= 0.99;
-        const alpha = p.life * 0.8;
+        if (p.life <= 0) { arr.splice(i, 1); continue; }
+
+        p.vy += 30 * dt;
+        p.vx *= 0.98;
+        p.x += p.vx * 60 * dt;
+        p.y += p.vy * 60 * dt;
+
+        const alpha = Math.pow(p.life, 1.5);
+        const radius = p.size * (0.3 + 0.7 * p.life);
+
+        ctx.globalAlpha = 1;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, ${p.saturation}%, ${p.lightness}%, ${alpha})`;
+        ctx.arc(p.x, p.y, radius + 2, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + (alpha * 0.3).toFixed(3) + ")";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + alpha.toFixed(3) + ")";
         ctx.fill();
       }
-      animFrameRef.current = requestAnimationFrame(animate);
+
+      animFrameRef.current = requestAnimationFrame(loop);
     };
-    animFrameRef.current = requestAnimationFrame(animate);
+    animFrameRef.current = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(animFrameRef.current);
-      window.removeEventListener("resize", resize);
-      hero.removeEventListener("mousemove", onMove);
+      ro.disconnect();
+      hero.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [spawnFirework]);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -364,8 +372,9 @@ export default function Welcome() {
       <section ref={heroRef} className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 pointer-events-none z-10"
+          className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
           aria-hidden="true"
+          style={{ display: "block" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative">
