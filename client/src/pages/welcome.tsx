@@ -31,7 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import sageLogoPath from "@assets/SAGE_logo_transparent.png";
 import analysisScreenshot from "@assets/image_1770620881472.png";
 import dashboardScreenshot from "@assets/image_1770620853328.png";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const FEATURES = [
   {
@@ -195,6 +195,107 @@ export default function Welcome() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [navScrolled, setNavScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<Array<{
+    x: number; y: number; vx: number; vy: number;
+    life: number; maxLife: number; size: number;
+    hue: number; saturation: number; lightness: number;
+  }>>([]);
+  const animFrameRef = useRef<number>(0);
+  const lastSpawnRef = useRef(0);
+
+  const spawnFirework = useCallback((x: number, y: number) => {
+    const now = Date.now();
+    if (now - lastSpawnRef.current < 30) return;
+    lastSpawnRef.current = now;
+
+    const count = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 2.5;
+      const hueChoice = Math.random();
+      let hue: number, sat: number, light: number;
+      if (hueChoice < 0.5) {
+        hue = 258 + (Math.random() - 0.5) * 20;
+        sat = 60 + Math.random() * 20;
+        light = 55 + Math.random() * 20;
+      } else if (hueChoice < 0.8) {
+        hue = 142;
+        sat = 50 + Math.random() * 20;
+        light = 50 + Math.random() * 20;
+      } else {
+        hue = 45;
+        sat = 80 + Math.random() * 15;
+        light = 55 + Math.random() * 15;
+      }
+      particlesRef.current.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.5,
+        life: 1,
+        maxLife: 0.6 + Math.random() * 0.6,
+        size: 1.5 + Math.random() * 2.5,
+        hue, saturation: sat, lightness: light,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const hero = heroRef.current;
+    if (!canvas || !hero) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      const rect = hero.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const onMove = (e: MouseEvent) => {
+      const rect = hero.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+        spawnFirework(x, y);
+      }
+    };
+    hero.addEventListener("mousemove", onMove);
+
+    let lastTime = performance.now();
+    const animate = (time: number) => {
+      const dt = Math.min((time - lastTime) / 1000, 0.05);
+      lastTime = time;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const particles = particlesRef.current;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt / p.maxLife;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.3 * dt;
+        p.vx *= 0.99;
+        const alpha = p.life * 0.8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, ${p.saturation}%, ${p.lightness}%, ${alpha})`;
+        ctx.fill();
+      }
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      window.removeEventListener("resize", resize);
+      hero.removeEventListener("mousemove", onMove);
+    };
+  }, [spawnFirework]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -261,6 +362,11 @@ export default function Welcome() {
       </nav>
 
       <section ref={heroRef} className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 pointer-events-none z-10"
+          aria-hidden="true"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative">
           <Badge variant="secondary" className="mb-6" data-testid="badge-hero">
