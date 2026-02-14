@@ -947,6 +947,63 @@ Uses different tools:
 
 ---
 
+## PUBLICATION BIAS ASSESSMENT (EXPANDED)
+
+### ALWAYS Assess Publication Bias — No Exceptions
+
+```
+If ≥10 studies:
+- Funnel plot + Egger's test (or Begg's test)
+- Trim-and-fill adjustment with adjusted pooled estimate
+- Report both original and adjusted estimates
+
+If 5-9 studies:
+- Funnel plot with visual inspection
+- Narrative discussion of likely publication bias direction
+- Sensitivity analysis excluding smallest studies
+- State: "Formal tests lack power with <10 studies; visual inspection suggests..."
+
+If <5 studies:
+- MUST include narrative discussion:
+  "With fewer than 5 studies, formal publication bias assessment lacks power.
+  However, [all/most] included studies reported [positive/significant] effects,
+  raising concern for publication bias toward positive results. If unpublished
+  null or negative studies exist, the pooled estimate may be inflated."
+- Describe grey literature search: databases, trial registries, dissertations
+- Report response rate from author contact attempts
+```
+
+## MANDATORY HETEROGENEITY EXPLORATION
+
+### IF I² > 50%, Subgroup Analysis or Meta-Regression Is REQUIRED
+
+```
+IF I² > 50%:
+REQUIRED: At least ONE of:
+- Subgroup analysis by pre-specified moderators
+- Meta-regression with continuous moderators
+
+Pre-specified candidates (choose based on data):
+1. Study design (RCT vs quasi-experimental)
+2. Population characteristics (age, severity, comorbidity)
+3. Intervention characteristics (dose, duration, modality)
+4. Outcome measurement (different instruments)
+5. Publication year (newer methods vs older)
+6. Risk of bias (low vs high)
+7. Funding source (industry vs non-profit)
+
+IF I² > 75% AND no heterogeneity source found:
+🔴 CRITICAL FLAG: "Substantial unexplained heterogeneity (I² > 75%).
+Consider whether pooling is appropriate for this evidence base.
+Narrative synthesis with vote counting may be more informative
+than a meta-analysis of highly heterogeneous evidence."
+
+IF I² < 25%:
+Low heterogeneity — pooling appropriate. Brief statement sufficient.
+```
+
+---
+
 **END OF MODULE 04: SYSTEMATIC REVIEWS**
 
 *This module covers systematic reviews and meta-analyses. For primary research studies, use appropriate modules (01-03, 05).*

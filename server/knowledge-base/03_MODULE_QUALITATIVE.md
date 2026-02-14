@@ -1013,6 +1013,55 @@ understanding of context-dependent nature of moral distress."
 
 ---
 
+## SATURATION DEFINITION VALIDATION (EXPANDED)
+
+### COREQ Item 21b: Saturation Must Be Explicitly Defined
+
+Qualitative research MUST specify which type of saturation was achieved:
+
+```
+SATURATION TYPES:
+1. Code Saturation: No new codes emerge in final N interviews
+   - Must state N (e.g., "no new codes in 3 consecutive interviews")
+   - Independent verification preferred
+
+2. Meaning Saturation: Existing codes develop no new nuances
+   - Deeper than code saturation — codes exist but new dimensions stop appearing
+   - Requires explicit coding memo trail
+
+3. Theoretical Saturation: Categories are fully developed per methodology
+   - Grounded theory specific
+   - Must demonstrate category relationships are explained
+
+4. Pragmatic Saturation: Resource-limited (acknowledge explicitly)
+   - Acceptable if acknowledged: "Saturation was not formally assessed due to [reason]"
+   - Must discuss implications for transferability
+```
+
+### Sample Size Thresholds by Methodology
+
+```
+FLAG if sample size is unusually low WITHOUT saturation justification:
+- Phenomenology (IPA): Minimum 3-6 participants (small by design)
+- Grounded Theory: Minimum 20-30 participants for theoretical saturation
+- Thematic Analysis: Minimum 6-12 participants for code saturation
+- Focus Groups: Minimum 3-4 groups (4-8 per group)
+- Ethnography: Extended engagement (months, not days)
+- Case Study: 1-5 cases (justified by depth, not breadth)
+```
+
+### Saturation Reporting Template
+```
+GOOD: "Code saturation was operationalized as no new codes emerging in 3
+consecutive interviews, assessed independently by two coders (achieved after
+interview 12; interviews 13-15 confirmed saturation)."
+
+FLAG: "Data saturation was reached" (no definition, no operationalization)
+FLAG: "n=6, saturation achieved" (unusually low without justification)
+```
+
+---
+
 **END OF MODULE 03: QUALITATIVE RESEARCH**
 
 *This module covers interviews, focus groups, ethnography, phenomenology, and other non-numerical research. For mixed qualitative-quantitative designs, use MODULE 05: MIXED METHODS.*

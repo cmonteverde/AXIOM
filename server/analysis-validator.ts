@@ -231,6 +231,58 @@ export function validateAnalysisResponse(raw: any): AnalysisResponse {
     result.learnLinks = [];
   }
 
+  // === RIGOR ENFORCEMENT ===
+
+  // 1. Score-feedback consistency: cap score if critical issues are high
+  const criticalCount = result.criticalIssues.filter((i: any) => i.severity === "critical").length;
+  if (criticalCount >= 5 && result.readinessScore > 60) {
+    result.readinessScore = Math.min(result.readinessScore, 55);
+  } else if (criticalCount >= 3 && result.readinessScore > 75) {
+    result.readinessScore = Math.min(result.readinessScore, 65);
+  } else if (criticalCount >= 1 && result.readinessScore > 85) {
+    result.readinessScore = Math.min(result.readinessScore, 80);
+  }
+
+  // 2. Ensure action items cover critical issues (at minimum 1:1 mapping)
+  const highPriorityActions = result.actionItems.filter((a: any) => a.priority === "high").length;
+  if (highPriorityActions < criticalCount) {
+    // Add missing action items for uncovered critical issues
+    const coveredTitles = new Set(result.actionItems.map((a: any) => a.task.toLowerCase()));
+    for (const issue of result.criticalIssues) {
+      const taskText = `Address critical issue: ${issue.title}`;
+      if (!coveredTitles.has(taskText.toLowerCase())) {
+        result.actionItems.push({
+          task: taskText,
+          priority: "high",
+          section: issue.umaReference || "General",
+          completed: false,
+        });
+      }
+    }
+  }
+
+  // 3. Log rigor warnings (useful for monitoring audit quality)
+  const rigorWarnings: string[] = [];
+  if (result.detailedFeedback.length < 10) {
+    rigorWarnings.push(`Low feedback count: ${result.detailedFeedback.length} items (target: ≥20)`);
+  }
+  if (result.actionItems.length < 8) {
+    rigorWarnings.push(`Low action item count: ${result.actionItems.length} items (target: ≥15)`);
+  }
+
+  // Check that feedback items quote manuscript text (contain quotation marks)
+  const quotingRate = result.detailedFeedback.length > 0
+    ? result.detailedFeedback.filter((fb: any) => fb.finding.includes('"') || fb.finding.includes("'")).length / result.detailedFeedback.length
+    : 0;
+  if (quotingRate < 0.3 && result.detailedFeedback.length > 0) {
+    rigorWarnings.push(`Low quoting rate: ${Math.round(quotingRate * 100)}% of feedback items quote manuscript text (target: ≥50%)`);
+  }
+
+  if (rigorWarnings.length > 0) {
+    console.warn("AXIOM RIGOR WARNINGS:", rigorWarnings.join("; "));
+    result._rigorWarnings = rigorWarnings;
+  }
+
   return result as AnalysisResponse;
 }
 

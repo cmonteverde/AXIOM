@@ -1165,6 +1165,51 @@ b = 0.87, p = .006."
 
 ---
 
+## ADVANCED CONFOUND ANALYSIS (EXPANDED)
+
+### Over-Adjustment & Mediation Bias
+Flag if manuscripts adjust for variables on the causal pathway between exposure and outcome:
+
+```
+OVER-ADJUSTMENT:
+❌ "We controlled for education and income" (if these are mediators of the exposure)
+✓ "Education (potential mediator) was examined in a separate sensitivity analysis"
+
+MEDIATION BIAS:
+If Variable M sits on causal path: Exposure → M → Outcome
+- Adjusting for M REMOVES the indirect effect
+- Only adjust for confounders (common causes), NOT mediators (consequences)
+```
+
+### Collider Bias Detection
+Conditioning on a common effect of exposure AND outcome introduces spurious associations:
+
+```
+COLLIDER BIAS MATRIX:
+Variable is a COMMON CAUSE of exposure AND outcome → ADJUST ✓ (confounder)
+Variable is a COMMON EFFECT of exposure AND outcome → DO NOT ADJUST ❌ (collider)
+Variable is on causal pathway → DO NOT ADJUST ❌ (mediator)
+
+Example:
+Exposure: Air pollution → Outcome: Lung disease
+"Hospitalization" is a COLLIDER (caused by both pollution AND lung disease)
+❌ Adjusting for hospitalization introduces selection bias
+
+FLAG if: Adjustment set not justified, or no DAG (directed acyclic graph) presented
+```
+
+### Negative/Unmeasured Confounding
+```
+REQUIRE in Limitations:
+1. "Residual confounding from unmeasured variables cannot be excluded"
+2. List plausible unmeasured confounders specific to the study
+3. State direction of expected bias (toward null or away from null)
+
+BONUS: E-value analysis to assess robustness to unmeasured confounding
+```
+
+---
+
 **END OF MODULE 02: OBSERVATIONAL/CORRELATIONAL**
 
 *This module covers cohort, case-control, cross-sectional, and survey studies without experimental manipulation. For randomized experiments, use MODULE 01: QUANTITATIVE EXPERIMENTAL.*
