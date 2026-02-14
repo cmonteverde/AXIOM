@@ -15,7 +15,7 @@ export function MouseFireworks() {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  const colors = ["#7C3AED", "#4ADE80", "#FACC15", "#D4C2FO"];
+  const colors = ["#3730A3", "#4ADE80", "#38BDF8", "#6366F1"];
 
   const createParticles = useCallback((x: number, y: number) => {
     // Check if mouse is over the central card (roughly)

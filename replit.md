@@ -11,15 +11,15 @@ AXIOM is an AI-powered pre-submission manuscript auditing tool that stress-tests
 - **File Storage**: Replit App Storage (GCS-backed object storage)
 - **AI**: OpenAI API (process.env.OPENAI_API_KEY) for manuscript auditing using UMA framework
 - **Font**: Plus Jakarta Sans (primary), Inter (fallback), Source Serif 4 (serif), JetBrains Mono (monospace)
-- **Color Palette** (modernized, desaturated for readability):
-  - Primary Purple: hsl(258, 70%, 55%) — actions, headings, brand
-  - Background: hsl(250, 20%, 98%) — near-white with subtle cool tone
+- **Color Palette** (dark indigo-blue, matching AXIOM shield logo):
+  - Primary Indigo: hsl(248, 58%, 38%) — deep blue-purple for actions, headings, brand
+  - Background: hsl(228, 25%, 97%) — near-white with subtle cool blue tone
   - Card: pure white — clean card surfaces
   - Sage Green: #4ADE80 (progress, success states)
-  - Insight Gold: #FACC15 (highlights only, used sparingly)
-  - Foreground: hsl(224, 30%, 14%) — rich dark text for readability
-  - Muted Foreground: hsl(220, 10%, 42%) — secondary text with good contrast
-- **Logo**: attached_assets/SAGE_logo_transparent.png (transparent background, used as AXIOM logo placeholder)
+  - Chart Blue: hsl(200, 70%, 48%) — secondary chart/accent blue
+  - Foreground: hsl(240, 45%, 15%) — deep navy text for readability
+  - Muted Foreground: hsl(228, 12%, 40%) — secondary text with good contrast
+- **Logo**: attached_assets/image_(2)_1771052353785.png (AXIOM shield logo with purple/blue split, "Audit & Rigor Platform" tagline)
 
 ## Brand Voice
 - Urgent, authoritative "auditing" language — not educational/helpful "mentor" language

@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import sageLogoPath from "@assets/SAGE_logo_transparent.png";
+import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
 import analysisScreenshot from "@assets/image_1770620881472.png";
 import dashboardScreenshot from "@assets/image_1770620853328.png";
 import testimonial1 from "@assets/testimonial-1.png";
@@ -441,7 +441,7 @@ export default function Welcome() {
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2" data-testid="text-nav-logo">
-            <img src={sageLogoPath} alt="AXIOM" className="w-14 h-14 object-contain" />
+            <img src={axiomLogoPath} alt="AXIOM" className="w-10 h-10 object-contain" />
           </div>
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-features">Features</a>
@@ -688,7 +688,7 @@ export default function Welcome() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center mb-3">
-                <img src={sageLogoPath} alt="AXIOM" className="w-12 h-12 object-contain" />
+                <img src={axiomLogoPath} alt="AXIOM" className="w-10 h-10 object-contain" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 AXIOM stress-tests manuscripts against top-tier rigor standards (CONSORT, PRISMA, STROBE) before submission.

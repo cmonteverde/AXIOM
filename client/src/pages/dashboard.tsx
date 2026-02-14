@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Manuscript } from "@shared/schema";
-import sageLogoPath from "@assets/SAGE_logo_transparent.png";
+import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
 import leader1 from "@assets/leader-1.png";
 import leader2 from "@assets/leader-2.png";
 import leader3 from "@assets/leader-3.png";
@@ -239,7 +239,7 @@ export default function Dashboard() {
       <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16">
           <div className="flex items-center" data-testid="text-dashboard-logo">
-            <img src={sageLogoPath} alt="AXIOM" className="w-14 h-14 object-contain" data-testid="img-logo" />
+            <img src={axiomLogoPath} alt="AXIOM" className="w-10 h-10 object-contain" data-testid="img-logo" />
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
