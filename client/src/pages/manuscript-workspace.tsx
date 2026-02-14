@@ -41,6 +41,13 @@ import {
   ChevronRight,
   X,
   ExternalLink,
+  FlaskConical,
+  Eye,
+  MessageSquare,
+  Search,
+  Layers,
+  FileText,
+  Wand2,
 } from "lucide-react";
 
 const HELP_TYPE_GROUPS = [
@@ -76,6 +83,9 @@ interface AnalysisData {
   readinessScore: number;
   summary?: string;
   executiveSummary?: string;
+  paperType?: string;
+  paperTypeLabel?: string;
+  modulesUsed?: string[];
   documentClassification?: {
     manuscriptType?: string;
     discipline?: string;
@@ -248,26 +258,61 @@ function FiveMoveCheck({ label, passed }: { label: string; passed: boolean }) {
   );
 }
 
+const PAPER_TYPES = [
+  { value: "quantitative_experimental", label: "Quantitative Experimental", description: "RCTs, controlled experiments, clinical trials", icon: FlaskConical },
+  { value: "observational", label: "Observational / Correlational", description: "Cohort, case-control, cross-sectional, surveys", icon: Eye },
+  { value: "qualitative", label: "Qualitative", description: "Interviews, focus groups, ethnography, phenomenology", icon: MessageSquare },
+  { value: "systematic_review", label: "Systematic Review", description: "Meta-analysis, PRISMA, evidence synthesis", icon: Search },
+  { value: "mixed_methods", label: "Mixed Methods", description: "Combined quantitative + qualitative designs", icon: Layers },
+  { value: "generic", label: "Generic Review", description: "Broad coverage for any manuscript type", icon: FileText },
+];
+
 function AnalysisOptionsDialog({
   open,
   onOpenChange,
   defaultHelpTypes,
+  currentPaperType,
+  manuscriptId,
+  hasText,
   onConfirm,
   isAnalyzing,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultHelpTypes: string[];
-  onConfirm: (helpTypes: string[]) => void;
+  currentPaperType: string;
+  manuscriptId: string;
+  hasText: boolean;
+  onConfirm: (helpTypes: string[], paperType: string) => void;
   isAnalyzing: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [paperType, setPaperType] = useState(currentPaperType || "generic");
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<{ detectedType: string; confidence: string; explanation: string } | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setSelected(new Set());
+      setPaperType(currentPaperType || "generic");
+      setDetectionResult(null);
     }
-  }, [open]);
+  }, [open, currentPaperType]);
+
+  const handleAutoDetect = async () => {
+    setIsDetecting(true);
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/auto-detect`);
+      const result = await res.json();
+      setDetectionResult(result);
+      setPaperType(result.detectedType);
+    } catch (err: any) {
+      toast({ title: "Detection failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsDetecting(false);
+    }
+  };
 
   const toggleType = (type: string) => {
     if (type === "Comprehensive Review") {
@@ -299,19 +344,78 @@ function AnalysisOptionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Choose Audit Focus</DialogTitle>
+          <DialogTitle>Configure AXIOM Audit</DialogTitle>
           <DialogDescription>
-            Select which areas you want AXIOM to audit. More focus areas = more comprehensive coverage.
+            Select your paper type and focus areas for the audit.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-3">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="text-xs text-muted-foreground">{selected.size} selected</span>
-            <div className="flex gap-2">
+        <div className="py-3 space-y-5">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Paper Type</p>
+              {hasText && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoDetect}
+                  disabled={isDetecting}
+                  data-testid="button-auto-detect"
+                >
+                  {isDetecting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-3 h-3 mr-1" />
+                      Auto-detect
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            {detectionResult && (
+              <div className={`text-xs p-2 rounded-md mb-2 ${
+                detectionResult.confidence === "high" ? "bg-sage/10 text-sage-dark" :
+                detectionResult.confidence === "medium" ? "bg-gold/10 text-gold-dark" :
+                "bg-muted text-muted-foreground"
+              }`} data-testid="text-detection-result">
+                {detectionResult.explanation}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {PAPER_TYPES.map((pt) => {
+                const Icon = pt.icon;
+                return (
+                  <button
+                    key={pt.value}
+                    onClick={() => setPaperType(pt.value)}
+                    className={`flex items-start gap-2 p-2.5 rounded-md border text-left transition-colors ${
+                      paperType === pt.value ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                    data-testid={`option-paper-type-${pt.value}`}
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${paperType === pt.value ? "text-primary" : "text-muted-foreground"}`} />
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium block">{pt.label}</span>
+                      <span className="text-xs text-muted-foreground">{pt.description}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Audit Focus Areas</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{selected.size} selected</span>
               <Button variant="outline" size="sm" onClick={selectAll} data-testid="button-select-all">
-                Select All
+                All
               </Button>
               <Button variant="outline" size="sm" onClick={clearAll} data-testid="button-clear-all">
                 Clear
@@ -355,13 +459,14 @@ function AnalysisOptionsDialog({
               </div>
             </div>
           ))}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-analysis">
             Cancel
           </Button>
           <Button
-            onClick={() => onConfirm(Array.from(selected))}
+            onClick={() => onConfirm(Array.from(selected), paperType)}
             disabled={selected.size === 0 || isAnalyzing}
             data-testid="button-confirm-analysis"
           >
@@ -468,12 +573,12 @@ export default function ManuscriptWorkspace() {
   });
 
   const analyzeMutation = useMutation({
-    mutationFn: async (helpTypes: string[]) => {
+    mutationFn: async ({ helpTypes, paperType }: { helpTypes: string[]; paperType: string }) => {
       setShowAnalysisDialog(false);
-      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`, { helpTypes });
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/analyze`, { helpTypes, paperType });
       return res.json();
     },
-    onSuccess: (_data, helpTypes) => {
+    onSuccess: (_data, { helpTypes }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
       const isComprehensive = helpTypes.includes("Comprehensive Review") || helpTypes.length >= SECTION_HELP_TYPES.length;
@@ -691,9 +796,16 @@ export default function ManuscriptWorkspace() {
               <h1 className="text-lg font-bold truncate" data-testid="text-manuscript-title">
                 {manuscript.title || "Untitled Manuscript"}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                {manuscript.stage} {manuscript.fileName ? `\u00b7 ${manuscript.fileName}` : ""}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-xs text-muted-foreground">
+                  {manuscript.stage} {manuscript.fileName ? `\u00b7 ${manuscript.fileName}` : ""}
+                </p>
+                {manuscript.paperType && manuscript.paperType !== "generic" && (
+                  <Badge variant="outline" className="text-xs" data-testid="badge-paper-type">
+                    {PAPER_TYPES.find(pt => pt.value === manuscript.paperType)?.label || manuscript.paperType}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -729,7 +841,10 @@ export default function ManuscriptWorkspace() {
         open={showAnalysisDialog}
         onOpenChange={setShowAnalysisDialog}
         defaultHelpTypes={manuscript.helpTypes && manuscript.helpTypes.length > 0 ? manuscript.helpTypes : ALL_HELP_TYPES}
-        onConfirm={(helpTypes) => analyzeMutation.mutate(helpTypes)}
+        currentPaperType={manuscript.paperType || "generic"}
+        manuscriptId={manuscript.id}
+        hasText={!!manuscriptText}
+        onConfirm={(helpTypes, paperType) => analyzeMutation.mutate({ helpTypes, paperType })}
         isAnalyzing={analyzeMutation.isPending}
       />
 
@@ -866,18 +981,21 @@ export default function ManuscriptWorkspace() {
                   <ScrollArea className="flex-1" style={{ height: "calc(100vh - 230px)" }}>
                     <TabsContent value="overview" className="p-4 mt-0">
                       <div className="space-y-6">
-                        {analysis.documentClassification && (
+                        {(analysis.documentClassification || analysis.paperTypeLabel) && (
                           <div className="flex flex-wrap gap-1.5">
-                            {analysis.documentClassification.manuscriptType && (
+                            {analysis.paperTypeLabel && (
+                              <Badge variant="default" className="text-xs" data-testid="badge-audit-paper-type">{analysis.paperTypeLabel}</Badge>
+                            )}
+                            {analysis.documentClassification?.manuscriptType && (
                               <Badge variant="outline" className="text-xs">{analysis.documentClassification.manuscriptType}</Badge>
                             )}
-                            {analysis.documentClassification.discipline && (
+                            {analysis.documentClassification?.discipline && (
                               <Badge variant="outline" className="text-xs">{analysis.documentClassification.discipline}</Badge>
                             )}
-                            {analysis.documentClassification.studyDesign && (
+                            {analysis.documentClassification?.studyDesign && (
                               <Badge variant="outline" className="text-xs">{analysis.documentClassification.studyDesign}</Badge>
                             )}
-                            {analysis.documentClassification.reportingGuideline && analysis.documentClassification.reportingGuideline !== "N/A" && (
+                            {analysis.documentClassification?.reportingGuideline && analysis.documentClassification.reportingGuideline !== "N/A" && (
                               <Badge variant="secondary" className="text-xs">{analysis.documentClassification.reportingGuideline}</Badge>
                             )}
                           </div>

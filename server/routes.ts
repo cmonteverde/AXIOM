@@ -6,6 +6,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { buildAxiomSystemPrompt, LEARN_LINK_URLS } from "./axiom-prompt";
+import { autoDetectPaperType, loadModulesForType, loadWritingWorkflow, loadPaperTypesExplained, getPaperTypeLabel, type PaperType } from "./module-loader";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -182,8 +183,13 @@ export async function registerRoutes(
       }
 
       const selectedHelpTypes: string[] = req.body?.helpTypes || manuscript.helpTypes || [];
+      const paperType = (req.body?.paperType || manuscript.paperType || "generic") as PaperType;
 
       await storage.updateManuscriptAnalysis(manuscript.id, null, "processing");
+
+      if (paperType !== manuscript.paperType) {
+        await storage.updateManuscriptPaperType(manuscript.id, paperType);
+      }
 
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
@@ -195,13 +201,17 @@ export async function registerRoutes(
 
       const truncatedText = textToAnalyze.slice(0, 30000);
 
+      const moduleData = loadModulesForType(paperType);
+      const paperTypeLabel = getPaperTypeLabel(paperType);
+
       const systemPrompt = buildAxiomSystemPrompt(manuscript.stage || "draft", selectedHelpTypes);
+      const moduleContext = `\n\n--- LOADED MODULES: ${moduleData.files.join(", ")} ---\n--- PAPER TYPE: ${paperTypeLabel} ---\n\n${moduleData.content}`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Please provide a comprehensive, section-by-section analysis of this manuscript. Be exhaustive - cover every section present and provide multiple feedback items per section:\n\n${truncatedText}` },
+          { role: "system", content: systemPrompt + moduleContext },
+          { role: "user", content: `Paper Type: ${paperTypeLabel}\nModules Loaded: ${moduleData.files.join(", ")}\n\nPlease provide a comprehensive, section-by-section analysis of this manuscript using the loaded type-specific modules. Be exhaustive - cover every section present and provide multiple feedback items per section:\n\n${truncatedText}` },
         ],
         response_format: { type: "json_object" },
         temperature: 0.3,
@@ -248,8 +258,12 @@ export async function registerRoutes(
         });
       }
 
+      analysisJson.paperType = paperType;
+      analysisJson.paperTypeLabel = paperTypeLabel;
+      analysisJson.modulesUsed = moduleData.files;
+
       const readinessScore = analysisJson.readinessScore ?? null;
-      await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore);
+      await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
 
       return res.json({ status: "completed", analysis: analysisJson });
     } catch (error: any) {
@@ -257,6 +271,67 @@ export async function registerRoutes(
       try {
         await storage.updateManuscriptAnalysis(req.params.id, null, "failed");
       } catch {}
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/manuscripts/:id/paper-type", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const { paperType } = req.body;
+      const validTypes = ["quantitative_experimental", "observational", "qualitative", "systematic_review", "mixed_methods", "generic"];
+      if (!paperType || !validTypes.includes(paperType)) {
+        return res.status(400).json({ message: "Invalid paper type" });
+      }
+      const updated = await storage.updateManuscriptPaperType(manuscript.id, paperType);
+      return res.json(updated);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/manuscripts/:id/auto-detect", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const text = manuscript.fullText || manuscript.previewText || "";
+      if (!text.trim()) {
+        return res.status(400).json({ message: "No manuscript text available for detection" });
+      }
+      const result = autoDetectPaperType(text);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/knowledge-base/paper-types", async (_req, res) => {
+    try {
+      const content = loadPaperTypesExplained();
+      return res.json({ content });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/knowledge-base/writing-workflow", async (_req, res) => {
+    try {
+      const content = loadWritingWorkflow();
+      return res.json({ content });
+    } catch (error: any) {
       return res.status(500).json({ message: error.message });
     }
   });

@@ -11,6 +11,7 @@ export const manuscripts = pgTable("manuscripts", {
   title: text("title"),
   stage: text("stage").default("draft"),
   helpTypes: text("help_types").array().default(sql`'{}'::text[]`),
+  paperType: text("paper_type").default("generic"),
   fileName: text("file_name"),
   fileKey: text("file_key"),
   fullText: text("full_text"),
@@ -18,6 +19,7 @@ export const manuscripts = pgTable("manuscripts", {
   extractionStatus: text("extraction_status").default("pending"),
   analysisJson: jsonb("analysis_json"),
   analysisStatus: text("analysis_status").default("none"),
+  analysisModules: text("analysis_modules").array().default(sql`'{}'::text[]`),
   readinessScore: integer("readiness_score"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -33,8 +35,10 @@ export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   extractionStatus: true,
   analysisJson: true,
   analysisStatus: true,
+  analysisModules: true,
   stage: true,
   helpTypes: true,
+  paperType: true,
 });
 
 export type InsertManuscript = z.infer<typeof insertManuscriptSchema>;

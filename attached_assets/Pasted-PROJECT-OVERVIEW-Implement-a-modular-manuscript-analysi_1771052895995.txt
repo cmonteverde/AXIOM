@@ -1,0 +1,157 @@
+PROJECT OVERVIEW
+Implement a modular manuscript analysis system for AXIOM (formerly SAGE). The system uses type-specific analysis modules that load dynamically based on research paper type selected by the user.
+CRITICAL BRANDING UPDATE
+IMPORTANT: Throughout all implementation, replace "SAGE" with "AXIOM" in all UI text, user-facing messages, and component text. Update the tagline from "Scholarly Assistant for Guided Excellence" to "Academic eXcellence through Intelligent Optimization & Mentorship". Keep "SAGE" ONLY in the markdown filenames themselves (like 00_SAGE_CORE_INSTRUCTIONS.md) since these are internal system files, but update all references WITHIN those markdown files to say "AXIOM" when referring to the system.
+FILE STRUCTURE SETUP
+Create a new directory at /server/knowledge-base/ and copy all 10 uploaded markdown files into this directory:
+
+00_SAGE_CORE_INSTRUCTIONS.md
+01_MODULE_QUANTITATIVE_EXPERIMENTAL.md
+02_MODULE_OBSERVATIONAL.md
+03_MODULE_QUALITATIVE.md
+04_MODULE_SYSTEMATIC_REVIEW.md
+05_MODULE_MIXED_METHODS.md
+06_MODULE_GENERIC.md
+SAGE_MODULE_GUIDE.md
+SAGE_PAPER_TYPES_EXPLAINED.md
+SAGE_WRITING_WORKFLOW.md
+
+MAIN WORKFLOW IMPLEMENTATION
+STEP 1: UPDATE ALL BRANDING
+Go through all existing UI components, welcome screens, headers, about pages, and documentation. Replace every instance of "SAGE" with "AXIOM" and update the tagline. Also update the branding within all 10 markdown files - replace "SAGE" with "AXIOM" when referring to the system name.
+STEP 2: CREATE PAPER TYPE SELECTION SCREEN
+After user uploads a manuscript, show them a selection screen asking "What type of research paper is this?" with a subtitle explaining that choosing the right type ensures AXIOM provides the most relevant analysis.
+Display 7 paper type options:
+Option 1: Quantitative Experimental (icon: 🧪)
+
+Title: Quantitative Experimental
+Description: RCT, lab study, controlled experiment with random assignment
+Examples: Clinical trial, A/B test, intervention study
+
+Option 2: Observational/Correlational (icon: 📊)
+
+Title: Observational/Correlational
+Description: Survey, cohort study, correlation without manipulation
+Examples: Cross-sectional survey, case-control, longitudinal study
+
+Option 3: Qualitative (icon: 💬)
+
+Title: Qualitative
+Description: Interviews, ethnography, thematic analysis
+Examples: Phenomenology, grounded theory, focus groups
+
+Option 4: Systematic Review (icon: 📚)
+
+Title: Systematic Review
+Description: Synthesis of existing research, meta-analysis
+Examples: Literature review, meta-analysis, scoping review
+
+Option 5: Mixed Methods (icon: 🔀)
+
+Title: Mixed Methods
+Description: Intentionally combines quantitative + qualitative with integration
+Examples: Sequential design, concurrent design, embedded design
+
+After a visual divider, show these two special options:
+Option 6: Not Sure - Auto-Detect (icon: 🤖) - HIGHLIGHTED
+
+Title: Not Sure - Auto-Detect
+Description: Let AXIOM scan your manuscript and suggest the type
+This should be visually emphasized as the recommended option for uncertain users
+
+Option 7: Generic Review (icon: 📄)
+
+Title: Generic Review
+Description: Comprehensive analysis when type is uncertain
+
+At the bottom of this screen, include a help button that says "What do these types mean?" with a help icon.
+STEP 3: CREATE HELP MODAL
+When user clicks "What do these types mean?", open a modal that displays the content from SAGE_PAPER_TYPES_EXPLAINED.md. Format it nicely with the decision flowchart, examples by field, and common confusions sections clearly visible. Make it scrollable and easy to read.
+STEP 4: IMPLEMENT AUTO-DETECTION FLOW
+If user selects "Not Sure - Auto-Detect", the system should:
+First, scan the manuscript text for keywords listed in the CORE instructions file under the "Auto-Detection Keywords" section. Count how many keywords match each paper type category.
+Second, determine which type has the most keyword matches and calculate confidence level (high if many matches, medium if moderate, low if few matches).
+Third, show a confirmation screen to the user with:
+
+A success icon
+Message: "AXIOM detected this as: [Type Name]"
+Confidence level display
+Explanation of why this type was detected
+List of specific keywords found in the manuscript
+Two action buttons: "Correct, analyze as [Type]" or "No, let me choose manually"
+
+If user confirms, proceed with that type. If user declines, show the manual selection screen from Step 2.
+STEP 5: IMPLEMENT MODULE LOADING SYSTEM
+Create a backend service that loads the appropriate markdown files based on the selected paper type:
+For Quantitative Experimental: Load CORE + Module 01
+For Observational: Load CORE + Module 02
+For Qualitative: Load CORE + Module 03
+For Systematic Review: Load CORE + Module 04
+For Mixed Methods: Load CORE + Module 05 (and potentially relevant quant/qual modules)
+For Generic: Load CORE + Module 06
+For Auto-Detect: Run detection first, then load modules for detected type
+The CORE file (00_SAGE_CORE_INSTRUCTIONS.md) is ALWAYS loaded regardless of type selection.
+STEP 6: UPDATE ANALYSIS ENDPOINT
+Modify the existing analysis endpoint to:
+
+Accept the paper type selection from the user
+Load the appropriate module files using the loader from Step 5
+Combine all loaded module content into the system context
+Send this combined context along with the manuscript text to the AI for analysis
+Return the analysis results along with metadata about which modules were used
+
+STEP 7: DISPLAY ANALYSIS RESULTS
+On the analysis results page, show:
+
+Header: "AXIOM Manuscript Analysis Report"
+Subheader showing: "Analysis Type: [Selected Type]" with a visual badge
+Indication of which modules were loaded: "Modules: CORE + [Module Name]"
+Then display the full analysis results as before
+
+STEP 8: ADD WRITING WORKFLOW AS SEPARATE FEATURE
+Create a new navigation item called "Writing Help" in the main app navigation (separate from manuscript analysis).
+When users click "Writing Help", display a dedicated page that shows the content from SAGE_WRITING_WORKFLOW.md. Format this content with:
+
+Clear section headings for each workflow (Assembly Line, Sprint Draft, etc.)
+Visual icons and formatting to make it engaging
+Examples and templates clearly highlighted
+This is completely separate from manuscript analysis - it's a resource users access when they need writing guidance
+
+STEP 9: HANDLE EXISTING MANUSCRIPTS
+For any manuscripts that were uploaded before this update:
+
+Default them to "generic" analysis type
+Add an option to "re-analyze with specific type" where users can select the correct type and get a more targeted analysis
+
+STEP 10: ADD METADATA TRACKING
+Store the selected paper type as metadata with each manuscript analysis so users can see which type was used for each analysis and easily re-run with a different type if needed.
+TESTING REQUIREMENTS
+After implementation, verify:
+
+All 10 markdown files are in /server/knowledge-base/ directory
+Paper type selection screen appears after manuscript upload
+All 7 paper type options are clickable and functional
+Help modal displays the paper types explanation guide correctly
+Auto-detect scans manuscript and shows confirmation screen with detected type
+Each paper type selection loads the correct module files
+Analysis results show which modules were used
+Writing Workflow is accessible as a separate navigation item
+All "SAGE" text has been changed to "AXIOM" in user interface
+Branding is consistent throughout the application
+
+SUCCESS CRITERIA
+The implementation is successful when:
+
+User uploads manuscript
+System asks "What type of paper is this?" with 7 clear options
+User selects a type OR chooses auto-detect which suggests a type
+Correct modules load based on the selection
+Analysis follows type-specific standards (CONSORT for RCTs, STROBE for observational, COREQ for qualitative, PRISMA for systematic reviews, etc.)
+Feedback references appropriate reporting guidelines for that paper type
+User can access the writing workflow separately from manuscript analysis
+All branding consistently shows "AXIOM" throughout
+
+IMPORTANT NOTES
+The module system is designed to be modular and expandable. Each module file contains comprehensive standards for that specific research type. The CORE file contains universal standards that apply to all papers. When modules are loaded together, they provide targeted, relevant feedback instead of overwhelming users with standards that don't apply to their research type.
+The Writing Workflow is intentionally separate from manuscript analysis - it's a resource for the writing process itself, not for analyzing completed manuscripts.
+Users should be able to easily understand which type their paper is, and the help system should guide them if uncertain. The auto-detect feature with confirmation provides a safety net for confused users while still giving them final control.

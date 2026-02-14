@@ -33,7 +33,9 @@ AXIOM is an AI-powered pre-submission manuscript auditing tool that stress-tests
 - `client/src/hooks/use-auth.ts` - Authentication hook
 - `client/src/hooks/use-upload.ts` - File upload hook
 - `client/src/lib/auth-utils.ts` - Auth error handling utilities
-- `server/` - Express server (routes.ts, storage.ts, db.ts, axiom-prompt.ts)
+- `server/` - Express server (routes.ts, storage.ts, db.ts, axiom-prompt.ts, module-loader.ts)
+- `server/knowledge-base/` - Modular knowledge base markdown files (10 files)
+- `server/module-loader.ts` - Paper type auto-detection and module loading service
 - `server/replit_integrations/auth/` - Replit Auth integration
 - `server/replit_integrations/object_storage/` - App Storage integration
 - `shared/schema.ts` - Drizzle ORM schema definitions
@@ -43,7 +45,21 @@ AXIOM is an AI-powered pre-submission manuscript auditing tool that stress-tests
 ## Database Schema
 - `users` - User profiles with auth info (email, name, profile image), research level, field, learning mode, XP, level, streak
 - `sessions` - Session storage for auth (mandatory for Replit Auth)
-- `manuscripts` - Manuscripts with stage, help types, title, file_key, full_text, preview_text, extraction_status, analysis_json (JSONB), analysis_status, readiness_score
+- `manuscripts` - Manuscripts with stage, help types, title, file_key, full_text, preview_text, extraction_status, analysis_json (JSONB), analysis_status, readiness_score, paper_type (default 'generic'), analysis_modules (text array)
+
+## Modular Analysis System
+- **Paper Types**: quantitative_experimental, observational, qualitative, systematic_review, mixed_methods, generic
+- **Module Loader** (`server/module-loader.ts`): Auto-detects paper type from manuscript text using keyword matching (high/medium/low confidence), loads type-specific modules
+- **Knowledge Base Files** (`server/knowledge-base/`):
+  - `00_SAGE_CORE_INSTRUCTIONS.md` - Core instructions (always loaded)
+  - `01-05_MODULE_*.md` - Type-specific modules for each paper type
+  - `06_MODULE_GENERIC.md` - Fallback generic module
+  - `SAGE_PAPER_TYPES_EXPLAINED.md` - Paper type descriptions
+  - `SAGE_WRITING_WORKFLOW.md` - Writing workflow guide
+  - `SAGE_GLOSSARY.md` - Terminology glossary
+- **Note**: Knowledge base files use SAGE naming internally (system files), but all UI says AXIOM
+- **Audit Dialog**: Users select paper type (or auto-detect) + focus areas before each audit
+- **Analysis JSON**: Now includes paperType, paperTypeLabel, modulesUsed fields
 
 ## Key Routes
 - `GET /api/auth/user` - Get current authenticated user
@@ -56,7 +72,11 @@ AXIOM is an AI-powered pre-submission manuscript auditing tool that stress-tests
 - `DELETE /api/manuscripts/:id` - Delete a manuscript (with ownership check)
 - `POST /api/manuscripts/:id/extract` - Extract text from uploaded manuscript file
 - `POST /api/manuscripts/:id/paste-text` - Save pasted manuscript text directly
-- `POST /api/manuscripts/:id/analyze` - Run AI audit using OpenAI + UMA framework
+- `POST /api/manuscripts/:id/analyze` - Run AI audit using OpenAI + UMA framework (now with paper type modules)
+- `POST /api/manuscripts/:id/paper-type` - Update paper type for a manuscript
+- `POST /api/manuscripts/:id/auto-detect` - Auto-detect paper type from manuscript text
+- `GET /api/knowledge-base/paper-types` - Get paper types explanation
+- `GET /api/knowledge-base/writing-workflow` - Get writing workflow guide
 - `POST /api/uploads/request-url` - Get presigned URL for file upload (max 50MB)
 
 ## User Flow
