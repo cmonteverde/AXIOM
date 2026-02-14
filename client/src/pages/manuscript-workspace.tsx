@@ -50,6 +50,20 @@ import {
   Wand2,
 } from "lucide-react";
 
+/** Only allow http: and https: URLs to prevent javascript: / data: XSS */
+function sanitizeUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url;
+    }
+  } catch {
+    // invalid URL
+  }
+  return undefined;
+}
+
 const HELP_TYPE_GROUPS = [
   {
     label: "Manuscript Sections",
@@ -581,6 +595,13 @@ export default function ManuscriptWorkspace() {
     onSuccess: (_data, { helpTypes }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
+      // Reset UI state that references old analysis data
+      setCheckedItems(new Set());
+      setFeedbackFilter(null);
+      setActionFilter(null);
+      setExpandedSections(new Set());
+      setShowScoreBreakdown(false);
+      setHighlightText(null);
       const isComprehensive = helpTypes.includes("Comprehensive Review") || helpTypes.length >= SECTION_HELP_TYPES.length;
       const description = isComprehensive
         ? "AXIOM has completed a comprehensive audit of your manuscript."
@@ -1193,9 +1214,9 @@ export default function ManuscriptWorkspace() {
                                     <p className="text-xs font-medium text-primary mb-0.5">Why it Matters (UMA)</p>
                                     <p className="text-xs text-muted-foreground">{fb.whyItMatters}</p>
                                   </div>
-                                  {fb.resourceUrl && (
+                                  {sanitizeUrl(fb.resourceUrl) && (
                                     <a
-                                      href={fb.resourceUrl}
+                                      href={sanitizeUrl(fb.resourceUrl)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       onClick={(e) => e.stopPropagation()}
@@ -1353,7 +1374,7 @@ export default function ManuscriptWorkspace() {
                         {(analysis.learnLinks || []).map((link, i) => (
                           <a
                             key={i}
-                            href={link.url || "#"}
+                            href={sanitizeUrl(link.url) || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block"
