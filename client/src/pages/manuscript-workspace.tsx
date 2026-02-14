@@ -48,7 +48,11 @@ import {
   Layers,
   FileText,
   Wand2,
+  Download,
+  Upload,
+  ChevronUp,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 /** Only allow http: and https: URLs to prevent javascript: / data: XSS */
 function sanitizeUrl(url: string | undefined): string | undefined {
@@ -503,6 +507,236 @@ function AnalysisOptionsDialog({
   );
 }
 
+const MANUSCRIPT_STAGES = [
+  { value: "draft", label: "Draft" },
+  { value: "revision", label: "Revision" },
+  { value: "final", label: "Final" },
+  { value: "submitted", label: "Submitted" },
+  { value: "published", label: "Published" },
+];
+
+function StageSelector({ manuscriptId, currentStage }: { manuscriptId: string; currentStage: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const stageMutation = useMutation({
+    mutationFn: async (stage: string) => {
+      const res = await apiRequest("PATCH", `/api/manuscripts/${manuscriptId}/stage`, { stage });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update stage", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const current = MANUSCRIPT_STAGES.find(s => s.value === currentStage) || MANUSCRIPT_STAGES[0];
+  const stageIndex = MANUSCRIPT_STAGES.findIndex(s => s.value === currentStage);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border hover:bg-muted/50 transition-colors"
+        data-testid="button-stage-selector"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${
+          stageIndex >= 4 ? "bg-sage" : stageIndex >= 2 ? "bg-primary" : "bg-gold-dark"
+        }`} />
+        {current.label}
+        {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-background border rounded-md shadow-lg py-1 min-w-[120px]">
+          {MANUSCRIPT_STAGES.map((stage) => (
+            <button
+              key={stage.value}
+              onClick={() => {
+                stageMutation.mutate(stage.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors flex items-center gap-2 ${
+                stage.value === currentStage ? "font-semibold text-primary" : ""
+              }`}
+              data-testid={`option-stage-${stage.value}`}
+            >
+              {stage.label}
+              {stage.value === currentStage && <CheckCircle2 className="w-3 h-3 ml-auto" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpdateTextDialog({
+  open,
+  onOpenChange,
+  manuscriptId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  manuscriptId: string;
+}) {
+  const [text, setText] = useState("");
+  const { toast } = useToast();
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", `/api/manuscripts/${manuscriptId}/text`, { text });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
+      toast({ title: "Manuscript Updated", description: "Your revised text has been saved. Run a new audit to see updated results." });
+      onOpenChange(false);
+      setText("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Update Manuscript Text</DialogTitle>
+          <DialogDescription>
+            Paste your revised manuscript text below. This will replace the current text. You can then re-run the audit to check your improvements.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste your revised manuscript text here..."
+          className="min-h-[300px] font-mono text-sm"
+          data-testid="textarea-update-text"
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {text.length.toLocaleString()} characters
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button
+              onClick={() => updateMutation.mutate()}
+              disabled={!text.trim() || updateMutation.isPending}
+              data-testid="button-confirm-update-text"
+            >
+              {updateMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+              ) : (
+                <><Upload className="w-4 h-4 mr-2" />Update Text</>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function generateExportMarkdown(analysis: AnalysisData, manuscript: Manuscript, checkedItems: Set<number>): string {
+  const lines: string[] = [];
+
+  lines.push(`# AXIOM Audit Report`);
+  lines.push(`## ${manuscript.title || "Untitled Manuscript"}`);
+  lines.push(`**Date:** ${new Date().toLocaleDateString()}`);
+  lines.push(`**Stage:** ${manuscript.stage || "draft"}`);
+  if (analysis.paperTypeLabel) lines.push(`**Paper Type:** ${analysis.paperTypeLabel}`);
+  if (analysis.documentClassification) {
+    const dc = analysis.documentClassification;
+    if (dc.discipline) lines.push(`**Discipline:** ${dc.discipline}`);
+    if (dc.studyDesign) lines.push(`**Study Design:** ${dc.studyDesign}`);
+    if (dc.reportingGuideline && dc.reportingGuideline !== "N/A") lines.push(`**Reporting Guideline:** ${dc.reportingGuideline}`);
+  }
+  lines.push("");
+
+  lines.push(`## Readiness Score: ${analysis.readinessScore}/100`);
+  lines.push("");
+  if (analysis.executiveSummary || analysis.summary) {
+    lines.push(analysis.executiveSummary || analysis.summary || "");
+    lines.push("");
+  }
+
+  if (analysis.scoreBreakdown) {
+    lines.push(`## Score Breakdown`);
+    const categories: [string, ScoreCategory | undefined][] = [
+      ["Title & Keywords", analysis.scoreBreakdown.titleAndKeywords],
+      ["Abstract", analysis.scoreBreakdown.abstract],
+      ["Introduction", analysis.scoreBreakdown.introduction],
+      ["Methods", analysis.scoreBreakdown.methods],
+      ["Results", analysis.scoreBreakdown.results],
+      ["Discussion", analysis.scoreBreakdown.discussion],
+      ["Ethics & Transparency", analysis.scoreBreakdown.ethicsAndTransparency],
+      ["Writing Quality", analysis.scoreBreakdown.writingQuality],
+      ["Zero-I Perspective", analysis.scoreBreakdown.zeroIPerspective],
+    ];
+    for (const [label, data] of categories) {
+      if (data) {
+        lines.push(`- **${label}:** ${data.score}/100 (weight: ${data.maxWeight}%) — ${data.notes}`);
+      }
+    }
+    lines.push("");
+  }
+
+  const criticalIssues = analysis.criticalIssues || [];
+  if (criticalIssues.length > 0) {
+    lines.push(`## Critical Issues (${criticalIssues.length})`);
+    for (const issue of criticalIssues) {
+      lines.push(`### ${issue.severity.toUpperCase()}: ${issue.title}`);
+      lines.push(issue.description);
+      lines.push(`*UMA Reference: ${issue.umaReference}*`);
+      lines.push("");
+    }
+  }
+
+  const feedback = analysis.detailedFeedback || [];
+  if (feedback.length > 0) {
+    lines.push(`## Detailed Feedback (${feedback.length} items)`);
+    const sections = Array.from(new Set(feedback.map(f => f.section)));
+    for (const section of sections) {
+      lines.push(`### ${section}`);
+      const items = feedback.filter(f => f.section === section);
+      for (const fb of items) {
+        lines.push(`**[${(fb.severity || "minor").toUpperCase()}]** ${fb.finding}`);
+        lines.push(`> Suggestion: ${fb.suggestion}`);
+        if (fb.whyItMatters) lines.push(`> Why it matters: ${fb.whyItMatters}`);
+        lines.push("");
+      }
+    }
+  }
+
+  const actionItems = analysis.actionItems || [];
+  if (actionItems.length > 0) {
+    lines.push(`## Action Items (${checkedItems.size}/${actionItems.length} completed)`);
+    for (let i = 0; i < actionItems.length; i++) {
+      const item = actionItems[i];
+      const checked = checkedItems.has(i) ? "x" : " ";
+      lines.push(`- [${checked}] **[${item.priority}]** ${item.task}${item.section ? ` *(${item.section})*` : ""}`);
+    }
+    lines.push("");
+  }
+
+  if (analysis.strengthsToMaintain && analysis.strengthsToMaintain.length > 0) {
+    lines.push(`## Strengths to Maintain`);
+    for (const s of analysis.strengthsToMaintain) {
+      lines.push(`- ${s}`);
+    }
+    lines.push("");
+  }
+
+  lines.push("---");
+  lines.push("*Generated by AXIOM — Universal Manuscript Architecture Audit*");
+
+  return lines.join("\n");
+}
+
 function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<AnalysisData["scoreBreakdown"]>; onClose: () => void }) {
   const categories = [
     { key: "titleAndKeywords", label: "Title & Keywords", data: breakdown.titleAndKeywords },
@@ -550,8 +784,10 @@ export default function ManuscriptWorkspace() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [checkedItemsLoaded, setCheckedItemsLoaded] = useState(false);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [showUpdateTextDialog, setShowUpdateTextDialog] = useState(false);
   const [feedbackFilter, setFeedbackFilter] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -598,6 +834,7 @@ export default function ManuscriptWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
       // Reset UI state that references old analysis data
       setCheckedItems(new Set());
+      setCheckedItemsLoaded(false);
       setFeedbackFilter(null);
       setActionFilter(null);
       setExpandedSections(new Set());
@@ -618,6 +855,13 @@ export default function ManuscriptWorkspace() {
     },
   });
 
+  const actionItemsMutation = useMutation({
+    mutationFn: async (completedIndices: number[]) => {
+      const res = await apiRequest("PATCH", `/api/manuscripts/${manuscriptId}/action-items`, { completedIndices });
+      return res.json();
+    },
+  });
+
   const toggleActionItem = (index: number) => {
     setCheckedItems((prev) => {
       const next = new Set(prev);
@@ -626,9 +870,12 @@ export default function ManuscriptWorkspace() {
       } else {
         next.add(index);
       }
+      // Persist to DB
+      actionItemsMutation.mutate(Array.from(next));
       return next;
     });
   };
+
 
   const extractQuotedText = useCallback((text: string): string | null => {
     const normalized = text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
@@ -719,6 +966,21 @@ export default function ManuscriptWorkspace() {
     }, 100);
   }, [findBestMatch, toast]);
 
+  // Load checked action items from DB when analysis data is available
+  useEffect(() => {
+    if (manuscript?.analysisJson && !checkedItemsLoaded) {
+      const analysis = manuscript.analysisJson as AnalysisData;
+      if (Array.isArray(analysis.actionItems)) {
+        const completed = new Set<number>();
+        analysis.actionItems.forEach((item, idx) => {
+          if (item.completed) completed.add(idx);
+        });
+        setCheckedItems(completed);
+      }
+      setCheckedItemsLoaded(true);
+    }
+  }, [manuscript?.analysisJson, checkedItemsLoaded]);
+
   useEffect(() => {
     if (
       manuscript &&
@@ -765,6 +1027,21 @@ export default function ManuscriptWorkspace() {
   const manuscriptText = manuscript.fullText || manuscript.previewText || "";
   manuscriptTextRef.current = manuscriptText;
   const isReExtracting = extractMutation.isPending;
+
+  const handleExportReport = () => {
+    if (!analysis || !manuscript) return;
+    const markdown = generateExportMarkdown(analysis, manuscript, checkedItems);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `axiom-audit-${(manuscript.title || "manuscript").replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: "Report Downloaded", description: "Your audit report has been saved as a Markdown file." });
+  };
 
   const detailedFeedback = analysis?.detailedFeedback || [];
   const actionItems = analysis?.actionItems || [];
@@ -819,9 +1096,10 @@ export default function ManuscriptWorkspace() {
                 {manuscript.title || "Untitled Manuscript"}
               </h1>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-xs text-muted-foreground">
-                  {manuscript.stage} {manuscript.fileName ? `\u00b7 ${manuscript.fileName}` : ""}
-                </p>
+                <StageSelector manuscriptId={manuscript.id} currentStage={manuscript.stage || "draft"} />
+                {manuscript.fileName && (
+                  <span className="text-xs text-muted-foreground">{manuscript.fileName}</span>
+                )}
                 {manuscript.paperType && manuscript.paperType !== "generic" && (
                   <Badge variant="outline" className="text-xs" data-testid="badge-paper-type">
                     {PAPER_TYPES.find(pt => pt.value === manuscript.paperType)?.label || manuscript.paperType}
@@ -831,6 +1109,28 @@ export default function ManuscriptWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {manuscriptText && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUpdateTextDialog(true)}
+                data-testid="button-update-text"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Update Text
+              </Button>
+            )}
+            {hasAnalysis && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportReport}
+                data-testid="button-export-report"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            )}
             <Button
               variant={hasAnalysis ? "outline" : "default"}
               size="sm"
@@ -868,6 +1168,12 @@ export default function ManuscriptWorkspace() {
         hasText={!!manuscriptText}
         onConfirm={(helpTypes, paperType) => analyzeMutation.mutate({ helpTypes, paperType })}
         isAnalyzing={analyzeMutation.isPending}
+      />
+
+      <UpdateTextDialog
+        open={showUpdateTextDialog}
+        onOpenChange={setShowUpdateTextDialog}
+        manuscriptId={manuscript.id}
       />
 
       <div className="max-w-[95%] mx-auto p-4">

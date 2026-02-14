@@ -14,6 +14,8 @@ export interface IStorage {
   updateManuscriptExtraction(id: string, previewText: string, extractionStatus: string, fullText?: string): Promise<Manuscript | undefined>;
   updateManuscriptAnalysis(id: string, analysisJson: any, analysisStatus: string, readinessScore?: number, analysisModules?: string[]): Promise<Manuscript | undefined>;
   updateManuscriptPaperType(id: string, paperType: string): Promise<Manuscript | undefined>;
+  updateManuscriptStage(id: string, stage: string): Promise<Manuscript | undefined>;
+  updateManuscriptActionItems(id: string, completedIndices: number[]): Promise<Manuscript | undefined>;
   deleteManuscript(id: string): Promise<void>;
   deleteManuscriptsByUserId(userId: string): Promise<void>;
 }
@@ -86,6 +88,27 @@ export class DatabaseStorage implements IStorage {
 
   async updateManuscriptPaperType(id: string, paperType: string): Promise<Manuscript | undefined> {
     const [manuscript] = await db.update(manuscripts).set({ paperType }).where(eq(manuscripts.id, id)).returning();
+    return manuscript;
+  }
+
+  async updateManuscriptStage(id: string, stage: string): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.update(manuscripts).set({ stage }).where(eq(manuscripts.id, id)).returning();
+    return manuscript;
+  }
+
+  async updateManuscriptActionItems(id: string, completedIndices: number[]): Promise<Manuscript | undefined> {
+    const [existing] = await db.select().from(manuscripts).where(eq(manuscripts.id, id));
+    if (!existing || !existing.analysisJson) return existing;
+
+    const analysis = existing.analysisJson as any;
+    if (Array.isArray(analysis.actionItems)) {
+      analysis.actionItems = analysis.actionItems.map((item: any, idx: number) => ({
+        ...item,
+        completed: completedIndices.includes(idx),
+      }));
+    }
+
+    const [manuscript] = await db.update(manuscripts).set({ analysisJson: analysis }).where(eq(manuscripts.id, id)).returning();
     return manuscript;
   }
 

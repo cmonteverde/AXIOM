@@ -510,6 +510,81 @@ export async function registerRoutes(
     }
   });
 
+  // Update action item completion state
+  app.patch("/api/manuscripts/:id/action-items", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const { completedIndices } = req.body;
+      if (!Array.isArray(completedIndices) || !completedIndices.every((i: any) => typeof i === "number" && i >= 0)) {
+        return res.status(400).json({ message: "Invalid completedIndices array" });
+      }
+      const updated = await storage.updateManuscriptActionItems(manuscript.id, completedIndices);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating action items:", error);
+      return res.status(500).json({ message: "Failed to update action items" });
+    }
+  });
+
+  // Update manuscript stage
+  app.patch("/api/manuscripts/:id/stage", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const { stage } = req.body;
+      const validStages = ["draft", "revision", "final", "submitted", "published"];
+      if (!stage || !validStages.includes(stage)) {
+        return res.status(400).json({ message: "Invalid stage. Must be one of: " + validStages.join(", ") });
+      }
+      const updated = await storage.updateManuscriptStage(manuscript.id, stage);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating stage:", error);
+      return res.status(500).json({ message: "Failed to update stage" });
+    }
+  });
+
+  // Update manuscript text (re-upload revised text)
+  app.patch("/api/manuscripts/:id/text", isAuthenticated, async (req: any, res) => {
+    try {
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const userId = req.user.claims.sub;
+      if (manuscript.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const { text } = req.body;
+      if (!text || typeof text !== "string" || text.trim().length === 0) {
+        return res.status(400).json({ message: "Text content is required" });
+      }
+      const MAX_PASTE_LENGTH = 500_000;
+      if (text.length > MAX_PASTE_LENGTH) {
+        return res.status(400).json({ message: `Text too large. Maximum ${MAX_PASTE_LENGTH.toLocaleString()} characters allowed.` });
+      }
+      const previewText = text.slice(0, 500).trim();
+      await storage.updateManuscriptExtraction(manuscript.id, previewText, "completed", text);
+      return res.json({ status: "completed", previewText });
+    } catch (error) {
+      console.error("Error updating manuscript text:", error);
+      return res.status(500).json({ message: "Failed to update manuscript text" });
+    }
+  });
+
   app.post("/api/manuscripts/:id/paste-text", isAuthenticated, async (req: any, res) => {
     try {
       const manuscript = await storage.getManuscript(req.params.id);
