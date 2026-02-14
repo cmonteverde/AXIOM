@@ -38,6 +38,7 @@ export default function NewManuscript() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -141,20 +142,51 @@ export default function NewManuscript() {
     }
   };
 
+  const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
+
+  const processFile = (file: File) => {
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "File too large", description: "Maximum file size is 50MB", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      toast({ title: "Unsupported file type", description: "Only PDF, DOCX, and TXT files are supported.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setSelectedFile(file);
+    setFileName(file.name);
+    if (!title) {
+      setTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const maxSize = 50 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast({ title: "File too large", description: "Maximum file size is 50MB", variant: "destructive" });
-        return;
-      }
-      setSelectedFile(file);
-      setFileName(file.name);
-      if (!title) {
-        setTitle(file.name.replace(/\.[^/.]+$/, ""));
-      }
-    }
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
   };
 
   const removeFile = () => {
@@ -261,8 +293,14 @@ export default function NewManuscript() {
           <>
             {!selectedFile ? (
               <div
-                className="border-2 border-dashed border-border rounded-md p-8 text-center mb-4 cursor-pointer hover:border-primary/30 transition-colors"
+                className={`border-2 border-dashed rounded-md p-8 text-center mb-4 cursor-pointer transition-colors ${
+                  isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                }`}
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 data-testid="dropzone-upload"
               >
                 <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
@@ -338,7 +376,7 @@ export default function NewManuscript() {
         <Button
           className="w-full"
           onClick={handleSubmit}
-          disabled={!canSubmit() || isUploading}
+          disabled={!canSubmit() || isUploading || isProcessing}
           data-testid="button-submit-manuscript"
         >
           {isUploading ? "Uploading..." : "Add Manuscript"}

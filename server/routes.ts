@@ -12,6 +12,9 @@ import { rateLimit } from "./rate-limit";
 // General API rate limit: 100 requests per minute per user
 const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
 
+// Track in-flight analysis requests to prevent duplicate OpenAI calls
+const activeAnalyses = new Set<string>();
+
 // Strict rate limit for expensive AI analysis: 5 requests per minute per user
 const analyzeLimiter = rateLimit({
   windowMs: 60_000,
@@ -66,7 +69,12 @@ export async function registerRoutes(
     try {
       const userId = req.user.claims.sub;
       await storage.deleteUser(userId);
-      return res.json({ success: true });
+      // Destroy the session so the deleted user's cookie is invalidated
+      req.logout(() => {
+        req.session.destroy(() => {
+          return res.json({ success: true });
+        });
+      });
     } catch (error) {
       console.error("Error deleting user:", error);
       return res.status(500).json({ message: "Failed to delete user" });
@@ -189,8 +197,15 @@ export async function registerRoutes(
   });
 
   app.post("/api/manuscripts/:id/analyze", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    const manuscriptId = req.params.id;
+
+    // Prevent concurrent analysis on the same manuscript
+    if (activeAnalyses.has(manuscriptId)) {
+      return res.status(409).json({ message: "Analysis is already in progress for this manuscript." });
+    }
+
     try {
-      const manuscript = await storage.getManuscript(req.params.id);
+      const manuscript = await storage.getManuscript(manuscriptId);
       if (!manuscript) {
         return res.status(404).json({ message: "Manuscript not found" });
       }
@@ -198,6 +213,8 @@ export async function registerRoutes(
       if (manuscript.userId !== userId) {
         return res.status(403).json({ message: "Forbidden" });
       }
+
+      activeAnalyses.add(manuscriptId);
 
       const textToAnalyze = manuscript.fullText || manuscript.previewText;
       if (!textToAnalyze || textToAnalyze.trim().length === 0) {
@@ -287,11 +304,13 @@ export async function registerRoutes(
       const readinessScore = analysisJson.readinessScore ?? null;
       await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
 
+      activeAnalyses.delete(manuscriptId);
       return res.json({ status: "completed", analysis: analysisJson });
     } catch (error) {
+      activeAnalyses.delete(manuscriptId);
       console.error("Analysis error:", error);
       try {
-        await storage.updateManuscriptAnalysis(req.params.id, null, "failed");
+        await storage.updateManuscriptAnalysis(manuscriptId, null, "failed");
       } catch {}
       return res.status(500).json({ message: "Analysis failed. Please try again." });
     }
@@ -376,6 +395,12 @@ export async function registerRoutes(
       const { text } = req.body;
       if (!text || typeof text !== "string" || text.trim().length === 0) {
         return res.status(400).json({ message: "Text content is required" });
+      }
+
+      // Limit paste text to 500KB (~500,000 characters) to prevent abuse
+      const MAX_PASTE_LENGTH = 500_000;
+      if (text.length > MAX_PASTE_LENGTH) {
+        return res.status(400).json({ message: `Text too large. Maximum ${MAX_PASTE_LENGTH.toLocaleString()} characters allowed.` });
       }
 
       const previewText = text.slice(0, 500).trim();
