@@ -293,6 +293,24 @@ Return a JSON object with this exact structure:
 
 Be exhaustive, specific, and authoritative. Ground ALL findings in UMA principles and cite the exact standard violated. Quote specific text from the manuscript whenever possible. Every finding must explain the publication risk and cite the relevant authority (ICMJE, EQUATOR, APA, Nature, COPE, etc.).
 
+## RIGOR REQUIREMENTS (NON-NEGOTIABLE)
+
+You MUST meet these minimum thresholds for a quality audit:
+
+1. **detailedFeedback**: MINIMUM 20 items. Cover EVERY section present in the manuscript. Each section must have AT LEAST 2 feedback items. Use direct quotes from the manuscript in your "finding" field — e.g., "The manuscript states '[exact quote]' which..."
+
+2. **actionItems**: MINIMUM 15 items. EVERY critical issue must have a corresponding action item. Group by priority (high first, then medium, then low).
+
+3. **criticalIssues**: Flag ALL desk-rejection risks. Check for: missing IRB/ethics (if applicable), missing AI disclosure, missing data availability, statistical errors, reporting guideline violations, causal language errors in observational studies.
+
+4. **scoreBreakdown**: Score EVERY category honestly. Do NOT give inflated scores. A score of 80+ means the section meets top-tier journal standards. A score of 50-79 means revisions needed. Below 50 means major issues.
+
+5. **Quoting**: In detailedFeedback, ALWAYS quote the specific problematic text from the manuscript in the "finding" field using quotation marks. If recommending a rewrite, provide the specific alternative text in the "suggestion" field.
+
+6. **Missing sections**: If the manuscript is MISSING a required section (e.g., no Limitations, no Data Availability Statement), flag this as a critical issue AND include it in detailedFeedback AND add an action item to write it.
+
+7. **Cross-referencing**: Check that Results mirror Methods order. Check that Discussion addresses all Results. Check that Abstract reflects actual findings. Flag any inconsistencies.
+
 The manuscript stage is: "${stage}". The user requested help with: ${helpFocus}.
 
 ## APPENDIX A: AXIOM TECHNICAL APPENDIX (ADVANCED WRITING WORKFLOW)
@@ -389,6 +407,12 @@ export const LEARN_LINK_URLS: Record<string, { url: string; source: string }[]> 
     { url: "https://content.sph.harvard.edu/wwwhsph/sites/2448/2024/02/Consolidated-criteria-for-reporting-qualitative-research-COREQ.pdf", source: "COREQ" },
     { url: "https://pubmed.ncbi.nlm.nih.gov/32908283/", source: "CONSORT-AI" },
     { url: "https://link.springer.com/article/10.1186/s12917-020-02451-y", source: "ARRIVE 2.0" },
+    { url: "https://www.care-statement.org/checklist", source: "CARE Checklist" },
+  ],
+  case_report: [
+    { url: "https://www.care-statement.org/checklist", source: "CARE Checklist" },
+    { url: "https://www.care-statement.org/writing-guide", source: "CARE Writing Guide" },
+    { url: "https://www.scareguideline.com/", source: "SCARE Surgical Guidelines" },
   ],
   structure: [
     { url: "https://www.nature.com/scitable/topicpage/scientific-papers-13815490/", source: "Nature Scitable" },

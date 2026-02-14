@@ -30,8 +30,9 @@ When a manuscript is uploaded, the user selects from:
 3. **Qualitative** (interviews, focus groups, ethnography, phenomenology)
 4. **Systematic Review** (narrative reviews, meta-analyses, scoping reviews)
 5. **Mixed Methods** (sequential, concurrent, or embedded qual+quant designs)
-6. **Not Sure - Auto-Detect** (SAGE analyzes keywords and suggests type)
-7. **Generic Review** (comprehensive blend when type is uncertain)
+6. **Case Report / Case Series** (clinical cases, patient presentations, CARE guideline)
+7. **Not Sure - Auto-Detect** (SAGE analyzes keywords and suggests type)
+8. **Generic Review** (comprehensive blend when type is uncertain)
 
 ### Auto-Detection Keywords:
 
@@ -90,6 +91,9 @@ IF type == "Systematic Review":
 IF type == "Mixed Methods":
    LOAD: 00_CORE + 05_MODULE_MIXED_METHODS
    ALSO REFERENCE: Relevant quant/qual modules based on methods used
+
+IF type == "Case Report":
+   LOAD: 00_CORE + 07_MODULE_CASE_REPORT
 
 IF type == "Generic Review" OR auto-detection fails:
    LOAD: 00_CORE + 06_MODULE_GENERIC
