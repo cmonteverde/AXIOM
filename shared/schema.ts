@@ -1,13 +1,15 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export * from "./models/auth";
 
+import { users } from "./models/auth";
+
 export const manuscripts = pgTable("manuscripts", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title"),
   stage: text("stage").default("draft"),
   helpTypes: text("help_types").array().default(sql`'{}'::text[]`),
@@ -23,7 +25,9 @@ export const manuscripts = pgTable("manuscripts", {
   readinessScore: integer("readiness_score"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_manuscripts_user_id").on(table.userId),
+]);
 
 export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   id: true,
