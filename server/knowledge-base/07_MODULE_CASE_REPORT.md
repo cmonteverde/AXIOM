@@ -361,6 +361,46 @@ prospective controlled study is needed to evaluate the efficacy of
 
 ---
 
+## ADVERSE EVENT CAUSALITY ASSESSMENT (EXPANDED)
+
+### Required for ANY Adverse Event Reported in a Case Report
+
+```
+1. TEMPORAL RELATIONSHIP:
+   - Date exposure/treatment began
+   - Date symptom onset (interval from start)
+   - Date symptom resolved (interval from drug discontinuation if applicable)
+
+2. DOSE-RESPONSE:
+   - Did increasing dose worsen symptoms?
+   - Did decreasing dose improve symptoms?
+
+3. DECHALLENGE (drug stopped):
+   - Was drug/treatment discontinued?
+   - If yes, did symptoms improve? Over what timeframe?
+   - If not discontinued, explain why (e.g., life-threatening condition)
+
+4. RECHALLENGE (drug restarted):
+   - If restarted, did symptoms recur?
+   - Note: Often unethical to rechallenge; state explicitly if not done
+
+5. ALTERNATIVE CAUSES:
+   - List other drugs, conditions, or exposures that could cause same symptoms
+   - Provide evidence against each alternative
+
+6. NARANJO CAUSALITY SCALE:
+   Rate as:
+   - Definite (≥9): Temporal + dechallenge + rechallenge + no alternatives
+   - Probable (5-8): Temporal + dechallenge + no reasonable alternatives
+   - Possible (1-4): Temporal relationship only
+   - Doubtful (≤0): Alternative explanation more plausible
+
+   FLAG if: Adverse event reported without temporal detail, dechallenge data,
+   or alternative cause discussion. Reviewer will question causality claim.
+```
+
+---
+
 **END OF MODULE 07: CASE REPORT / CASE SERIES**
 
 *This module covers case reports, case series, and clinical vignettes. For experimental studies with control groups, use MODULE 01: QUANTITATIVE EXPERIMENTAL.*

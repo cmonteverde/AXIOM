@@ -332,6 +332,11 @@ export async function registerRoutes(
       const selectedHelpTypes: string[] = req.body?.helpTypes || manuscript.helpTypes || [];
       const paperType = (req.body?.paperType || manuscript.paperType || "generic") as PaperType;
 
+      // Fetch user profile for learning mode adaptation
+      const user = await storage.getUser(userId);
+      const learningMode = user?.learningMode || "adaptive";
+      const researchLevel = user?.researchLevel || "postdoc";
+
       await storage.updateManuscriptAnalysis(manuscript.id, null, "processing");
 
       if (paperType !== manuscript.paperType) {
@@ -352,7 +357,7 @@ export async function registerRoutes(
       const moduleData = loadModulesForType(paperType);
       const paperTypeLabel = getPaperTypeLabel(paperType);
 
-      const systemPrompt = buildAxiomSystemPrompt(manuscript.stage || "draft", selectedHelpTypes);
+      const systemPrompt = buildAxiomSystemPrompt(manuscript.stage || "draft", selectedHelpTypes, learningMode, researchLevel);
       const moduleContext = `\n\n--- LOADED MODULES: ${moduleData.files.join(", ")} ---\n--- PAPER TYPE: ${paperTypeLabel} ---\n\n${moduleData.content}`;
 
       // Build focus area instructions
@@ -367,7 +372,24 @@ export async function registerRoutes(
             model: "gpt-4o",
             messages: [
               { role: "system", content: systemPrompt + moduleContext },
-              { role: "user", content: `Paper Type: ${paperTypeLabel}\nModules Loaded: ${moduleData.files.join(", ")}\nManuscript Length: ${textToAnalyze.length} characters\n\n${focusInstructions}\n\nPlease provide a comprehensive, section-by-section analysis of this manuscript using the loaded type-specific modules. Be exhaustive - cover every section present and provide multiple feedback items per section. For each finding, quote the specific text from the manuscript that relates to the issue. Aim for at least 20 detailed feedback items and 15 action items. Every critical issue MUST have a corresponding action item.\n\n--- MANUSCRIPT TEXT ---\n${truncatedText}` },
+              { role: "user", content: `LOADED MODULE: ${moduleData.files.join(", ")}
+PAPER TYPE: ${paperTypeLabel}
+STAGE: ${manuscript.stage || "draft"}
+MANUSCRIPT LENGTH: ${textToAnalyze.length} characters
+
+${focusInstructions}
+
+CRITICAL INSTRUCTIONS FOR THIS AUDIT:
+1. ALL feedback MUST quote specific text from the manuscript using quotation marks in the "finding" field
+2. The loaded module is MANDATORY — enforce EVERY applicable checklist item from that module
+3. ${(manuscript.stage === "submitted" || manuscript.stage === "final") ? "This is a FINAL/SUBMITTED manuscript — flag ANYTHING not publication-ready as critical" : "This is a draft — distinguish between critical (desk-rejection risk) and minor (polish) issues"}
+4. Minimum output: 20 detailed feedback items, 15 action items
+5. Every critical issue MUST have a corresponding high-priority action item
+6. For OBSERVATIONAL studies: Apply the causal language detection matrix. Flag ANY causal verbs (causes, increases, leads to, prevents) in non-RCT manuscripts
+7. Check cross-references: Results must mirror Methods order. Discussion must address all Results. Abstract must reflect actual findings.
+
+--- MANUSCRIPT TEXT ---
+${truncatedText}` },
             ],
             response_format: { type: "json_object" },
             temperature: 0.3,
