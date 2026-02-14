@@ -51,7 +51,10 @@ import {
   Download,
   Upload,
   ChevronUp,
+  HelpCircle,
+  Lightbulb,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 
 /** Only allow http: and https: URLs to prevent javascript: / data: XSS */
@@ -273,6 +276,36 @@ function FiveMoveCheck({ label, passed }: { label: string; passed: boolean }) {
         {label}
       </span>
     </div>
+  );
+}
+
+function AuditGuidePanel() {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <button
+      onClick={() => setIsOpen(!isOpen)}
+      className="w-full text-left"
+    >
+      <Card className="p-3 bg-muted/30 border-dashed">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <HelpCircle className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold">How to use this audit</span>
+          </div>
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        </div>
+        {isOpen && (
+          <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5 text-xs text-muted-foreground">
+            <p><span className="font-medium text-foreground">1.</span> Review your <span className="font-medium">Audit Score</span> and executive summary below</p>
+            <p><span className="font-medium text-foreground">2.</span> Check the <span className="font-medium">Feedback</span> tab — start with Critical items (red badges)</p>
+            <p><span className="font-medium text-foreground">3.</span> Click any feedback card to highlight the relevant text in your manuscript</p>
+            <p><span className="font-medium text-foreground">4.</span> Use the <span className="font-medium">Actions</span> tab to track your fixes with checkboxes</p>
+            <p><span className="font-medium text-foreground">5.</span> Visit the <span className="font-medium">Learn</span> tab for resources tailored to your gaps</p>
+            <p><span className="font-medium text-foreground">6.</span> After revisions, click <span className="font-medium">Re-analyze</span> to verify improvements</p>
+          </div>
+        )}
+      </Card>
+    </button>
   );
 }
 
@@ -737,6 +770,18 @@ function generateExportMarkdown(analysis: AnalysisData, manuscript: Manuscript, 
   return lines.join("\n");
 }
 
+const CATEGORY_TIPS: Record<string, string> = {
+  titleAndKeywords: "Add 4-5 discipline-specific keywords (MeSH terms for biomedical). Keep title under 15 words with key finding.",
+  abstract: "Follow the 5-Move structure: Hook, Gap, Approach, Findings (with numbers), Impact. Stay under 250 words.",
+  introduction: "End with an explicit gap statement and research questions. Cite 10-30 relevant papers.",
+  methods: "Enough detail for replication: instruments, sample size justification, exact statistical tests, software versions.",
+  results: "Report every test with statistic, df, exact p-value, effect size, and 95% CI. Mirror Methods order.",
+  discussion: "Start with findings restatement, compare to 5-10 key papers, discuss implications, then limitations.",
+  ethicsAndTransparency: "Include IRB number, consent method, conflict of interest statement, data availability, and CRediT roles.",
+  writingQuality: "Use correct tense per section (Methods = past, Discussion = present). Replace vague language with numbers.",
+  zeroIPerspective: "Replace 'I/we found' with 'Results indicated' or 'The analysis revealed'. Maintain formal academic voice.",
+};
+
 function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<AnalysisData["scoreBreakdown"]>; onClose: () => void }) {
   const categories = [
     { key: "titleAndKeywords", label: "Title & Keywords", data: breakdown.titleAndKeywords },
@@ -762,7 +807,7 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Your audit score is a weighted average across these categories. Each category is scored 0-100 and weighted by its importance to publication compliance.
+        Your audit score is a weighted average across these categories. Each category is scored 0-100 and weighted by its importance to publication compliance. Categories scoring below 75 include improvement tips.
       </p>
       <div className="space-y-3">
         {categories.map(({ key, label, data }) => (
@@ -770,6 +815,12 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
             <ScoreBar label={label} score={data!.score} weight={data!.maxWeight} />
             {data!.notes && (
               <p className="text-xs text-muted-foreground mt-1 pl-1">{data!.notes}</p>
+            )}
+            {data!.score < 75 && CATEGORY_TIPS[key] && (
+              <p className="text-xs text-primary/70 mt-1 pl-1 flex items-start gap-1">
+                <Lightbulb className="w-3 h-3 shrink-0 mt-0.5" />
+                {CATEGORY_TIPS[key]}
+              </p>
             )}
           </div>
         ))}
@@ -1309,6 +1360,7 @@ export default function ManuscriptWorkspace() {
                   <ScrollArea className="flex-1" style={{ height: "calc(100vh - 230px)" }}>
                     <TabsContent value="overview" className="p-4 mt-0">
                       <div className="space-y-6">
+                        <AuditGuidePanel />
                         {(analysis.documentClassification || analysis.paperTypeLabel) && (
                           <div className="flex flex-wrap gap-1.5">
                             {analysis.paperTypeLabel && (
@@ -1330,7 +1382,22 @@ export default function ManuscriptWorkspace() {
                         )}
 
                         <div className="text-center">
-                          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Audit Score</h3>
+                          <div className="flex items-center justify-center gap-1.5 mb-3">
+                            <h3 className="text-sm font-semibold text-muted-foreground">Audit Score</h3>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[220px]">
+                                <p className="font-medium mb-1">Readiness Scale</p>
+                                <div className="space-y-0.5 text-xs">
+                                  <p><span className="text-sage font-medium">75-100:</span> Submission-ready</p>
+                                  <p><span className="text-gold-dark font-medium">50-74:</span> Revisions needed</p>
+                                  <p><span className="text-destructive font-medium">0-49:</span> Major work needed</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                           <ScoreRing score={analysis.readinessScore} />
                           <p className="text-sm text-muted-foreground mt-3">{analysis.executiveSummary || analysis.summary}</p>
                           {analysis.scoreBreakdown && (
@@ -1357,6 +1424,14 @@ export default function ManuscriptWorkspace() {
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-primary" />
                             5-Move Abstract Check
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[250px]">
+                                Top-tier abstracts follow a 5-part structure: Hook (why it matters), Gap (what's missing), Approach (what you did), Findings (key results with numbers), and Impact (so what). Missing any of these weakens your abstract.
+                              </TooltipContent>
+                            </Tooltip>
                           </h3>
                           <Card className="p-3 space-y-2">
                             <FiveMoveCheck label="1. Hook (Broad Significance)" passed={analysis.abstractAnalysis.hasHook} />
@@ -1378,6 +1453,14 @@ export default function ManuscriptWorkspace() {
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-primary" />
                             Zero-I Perspective
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-[250px]">
+                                Academic writing convention: avoid first-person pronouns ("I", "we", "my") in formal manuscripts. Use passive voice or third-person instead. Some journals accept first-person, but most top-tier journals expect formal voice.
+                              </TooltipContent>
+                            </Tooltip>
                           </h3>
                           <Card className="p-3">
                             <div className="flex items-center gap-2 mb-2">
@@ -1407,6 +1490,14 @@ export default function ManuscriptWorkspace() {
                             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                               Critical Issues ({criticalIssues.length})
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[250px]">
+                                  Critical issues are violations likely to trigger desk rejection or Major Revisions. Fix these FIRST before addressing other feedback.
+                                </TooltipContent>
+                              </Tooltip>
                             </h3>
                             <div className="space-y-2">
                               {criticalIssues.map((issue, i) => (
@@ -1416,7 +1507,17 @@ export default function ManuscriptWorkspace() {
                                     <SeverityBadge severity={issue.severity} />
                                   </div>
                                   <p className="text-xs text-muted-foreground mb-1">{issue.description}</p>
-                                  <p className="text-xs text-primary/70">UMA: {issue.umaReference}</p>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <p className="text-xs text-primary/70 cursor-help inline-flex items-center gap-1">
+                                        UMA: {issue.umaReference}
+                                        <HelpCircle className="w-3 h-3" />
+                                      </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="max-w-[220px]">
+                                      UMA = Universal Manuscript Architecture. This references the specific audit phase where this issue was detected.
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </Card>
                               ))}
                             </div>
@@ -1561,6 +1662,51 @@ export default function ManuscriptWorkspace() {
                           </span>
                         </div>
 
+                        {/* Priority Roadmap */}
+                        {actionItems.length > 0 && (() => {
+                          const highCount = actionItems.filter(a => a.priority === "high").length;
+                          const medCount = actionItems.filter(a => a.priority === "medium").length;
+                          const lowCount = actionItems.filter(a => a.priority === "low").length;
+                          const highDone = actionItems.filter((a, i) => a.priority === "high" && checkedItems.has(i)).length;
+                          const medDone = actionItems.filter((a, i) => a.priority === "medium" && checkedItems.has(i)).length;
+                          const lowDone = actionItems.filter((a, i) => a.priority === "low" && checkedItems.has(i)).length;
+                          return (
+                            <Card className="p-3 bg-muted/30 border-dashed">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <Lightbulb className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-xs font-semibold">Recommended Fix Order</span>
+                              </div>
+                              <div className="space-y-1.5">
+                                {highCount > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className={highDone === highCount ? "line-through text-muted-foreground" : "text-destructive font-medium"}>
+                                      1. Fix {highCount} high-priority items first
+                                    </span>
+                                    <span className="text-muted-foreground">{highDone}/{highCount}</span>
+                                  </div>
+                                )}
+                                {medCount > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className={medDone === medCount ? "line-through text-muted-foreground" : ""}>
+                                      2. Address {medCount} medium-priority items
+                                    </span>
+                                    <span className="text-muted-foreground">{medDone}/{medCount}</span>
+                                  </div>
+                                )}
+                                {lowCount > 0 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className={lowDone === lowCount ? "line-through text-muted-foreground" : "text-muted-foreground"}>
+                                      3. Polish {lowCount} minor items
+                                    </span>
+                                    <span className="text-muted-foreground">{lowDone}/{lowCount}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-2">After fixes, click "Re-analyze" to verify improvements.</p>
+                            </Card>
+                          );
+                        })()}
+
                         {actionSections.length > 1 && (
                           <div className="flex flex-wrap gap-1">
                             <Badge
@@ -1676,7 +1822,7 @@ export default function ManuscriptWorkspace() {
                             Learning Resources ({(analysis.learnLinks || []).length})
                           </h3>
                         <p className="text-xs text-muted-foreground">
-                          Based on your manuscript's areas for improvement, here are UMA resources to strengthen your writing.
+                          Curated for your manuscript based on the specific gaps flagged in your audit. Each resource links to authoritative sources (ICMJE, EQUATOR, APA, COPE).
                         </p>
                         {(analysis.learnLinks || []).map((link, i) => (
                           <a

@@ -39,9 +39,9 @@ const ACADEMIC_FIELDS = [
 ];
 
 const LEARNING_MODES = [
-  { value: "fast", label: "Fast Mode", description: "Concise feedback" },
-  { value: "learning", label: "Learning Mode", description: "Detailed explanations" },
-  { value: "adaptive", label: "Adaptive", description: "AXIOM adjusts (Recommended)" },
+  { value: "adaptive", label: "Adaptive", description: "AXIOM adjusts to your expertise level (Recommended)", detail: "Matches feedback depth to your research level. We recommend starting here." },
+  { value: "learning", label: "Learning Mode", description: "Detailed explanations with 'why it matters' context", detail: "Every finding explains WHY the standard exists, defines jargon, and provides before/after examples." },
+  { value: "fast", label: "Fast Mode", description: "Concise expert-level feedback", detail: "Just the problem + fix in 2 sentences. Best for experienced researchers doing resubmissions." },
 ];
 
 export default function ProfileSetup() {
@@ -148,7 +148,8 @@ export default function ProfileSetup() {
 
         {step === 1 && (
           <div>
-            <h2 className="text-base font-semibold mb-4" data-testid="text-step1-title">Research level?</h2>
+            <h2 className="text-base font-semibold mb-1" data-testid="text-step1-title">Research level?</h2>
+            <p className="text-xs text-muted-foreground mb-4">This helps AXIOM tailor feedback depth to your experience. PhDs get nuanced methodological detail; undergrads get more foundational context.</p>
             <div className="space-y-3">
               {RESEARCH_LEVELS.map((level) => (
                 <div key={level}>
@@ -189,7 +190,8 @@ export default function ProfileSetup() {
 
         {step === 2 && (
           <div>
-            <h2 className="text-base font-semibold mb-4" data-testid="text-step2-title">Primary field?</h2>
+            <h2 className="text-base font-semibold mb-1" data-testid="text-step2-title">Primary field?</h2>
+            <p className="text-xs text-muted-foreground mb-4">AXIOM adapts reporting guidelines and terminology to your discipline. A clinical trial gets CONSORT checks; a qualitative study gets COREQ.</p>
             <Select value={primaryField} onValueChange={setPrimaryField}>
               <SelectTrigger data-testid="select-field">
                 <SelectValue placeholder="Select your field..." />
@@ -218,7 +220,8 @@ export default function ProfileSetup() {
 
         {step === 3 && (
           <div>
-            <h2 className="text-base font-semibold mb-4" data-testid="text-step3-title">Learning preference?</h2>
+            <h2 className="text-base font-semibold mb-1" data-testid="text-step3-title">Learning preference?</h2>
+            <p className="text-xs text-muted-foreground mb-4">This changes how AXIOM writes audit feedback. You can change this anytime in settings.</p>
             <div className="space-y-3">
               {LEARNING_MODES.map((mode) => (
                 <label
@@ -241,6 +244,9 @@ export default function ProfileSetup() {
                   <div>
                     <span className="text-sm font-medium">{mode.label}</span>
                     <p className="text-xs text-muted-foreground">{mode.description}</p>
+                    {learningMode === mode.value && mode.detail && (
+                      <p className="text-xs text-primary/70 mt-1">{mode.detail}</p>
+                    )}
                   </div>
                 </label>
               ))}
