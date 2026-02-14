@@ -301,9 +301,9 @@ function AnalysisOptionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Choose Analysis Focus</DialogTitle>
+          <DialogTitle>Choose Audit Focus</DialogTitle>
           <DialogDescription>
-            Select which areas you want SAGE to focus on during analysis. More focus areas = more comprehensive feedback.
+            Select which areas you want AXIOM to audit. More focus areas = more comprehensive coverage.
           </DialogDescription>
         </DialogHeader>
         <div className="py-3">
@@ -373,7 +373,7 @@ function AnalysisOptionsDialog({
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Run Analysis
+                Run Audit
               </>
             )}
           </Button>
@@ -408,7 +408,7 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Your readiness score is a weighted average across these categories. Each category is scored 0-100 and weighted by its importance to publication readiness.
+        Your audit score is a weighted average across these categories. Each category is scored 0-100 and weighted by its importance to publication compliance.
       </p>
       <div className="space-y-3">
         {categories.map(({ key, label, data }) => (
@@ -478,16 +478,16 @@ export default function ManuscriptWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
       const isComprehensive = helpTypes.includes("Comprehensive Review") || helpTypes.length >= SECTION_HELP_TYPES.length;
       const description = isComprehensive
-        ? "SAGE has completed a comprehensive review of your manuscript."
-        : `SAGE has completed analysis of: ${helpTypes.join(", ")}.`;
-      toast({ title: "Analysis Complete", description });
+        ? "AXIOM has completed a comprehensive audit of your manuscript."
+        : `AXIOM has completed audit of: ${helpTypes.join(", ")}.`;
+      toast({ title: "Audit Complete", description });
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         window.location.href = "/api/login";
         return;
       }
-      toast({ title: "Analysis Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Audit Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -717,7 +717,7 @@ export default function ManuscriptWorkspace() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Run SAGE Analysis
+                  Run AXIOM Audit
                 </>
               )}
             </Button>
@@ -823,23 +823,23 @@ export default function ManuscriptWorkspace() {
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
                   </div>
-                  <h3 className="text-lg font-semibold text-primary mb-2">SAGE is Analyzing</h3>
+                  <h3 className="text-lg font-semibold text-primary mb-2">AXIOM is Auditing</h3>
                   <p className="text-sm text-muted-foreground">
-                    Performing comprehensive section-by-section review using UMA framework...
+                    Running section-by-section rigor check against UMA framework...
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">This may take 30-60 seconds for a thorough analysis</p>
+                  <p className="text-xs text-muted-foreground mt-2">This may take 30-60 seconds for a thorough audit</p>
                 </div>
               </Card>
             ) : !hasAnalysis ? (
               <Card className="h-full flex items-center justify-center p-8">
                 <div className="text-center">
                   <Sparkles className="w-12 h-12 text-primary/30 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Ready to Analyze</h3>
+                  <h3 className="text-lg font-semibold mb-2">Ready to Audit</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Click "Run SAGE Analysis" to get comprehensive, section-by-section feedback based on the Universal Manuscript Architecture.
+                    Click "Run AXIOM Audit" to stress-test your manuscript section-by-section against the Universal Manuscript Architecture.
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    SAGE will review every section, check for the Structured 5-Move Abstract, Zero-I Perspective, and provide detailed action items.
+                    AXIOM will validate every section, check the 5-Move Abstract, Zero-I Perspective, and surface all compliance gaps.
                   </p>
                 </div>
               </Card>
@@ -884,7 +884,7 @@ export default function ManuscriptWorkspace() {
                         )}
 
                         <div className="text-center">
-                          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Publication Readiness</h3>
+                          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Audit Score</h3>
                           <ScoreRing score={analysis.readinessScore} />
                           <p className="text-sm text-muted-foreground mt-3">{analysis.executiveSummary || analysis.summary}</p>
                           {analysis.scoreBreakdown && (
@@ -1174,11 +1174,11 @@ export default function ManuscriptWorkspace() {
 
                     <TabsContent value="learn" className="p-4 mt-0">
                       <div className="space-y-6">
-                        {/* SAGE Advanced Workflow Strategies Section */}
+                        {/* AXIOM Advanced Workflow Strategies Section */}
                         <div className="space-y-3">
                           <h3 className="text-sm font-semibold flex items-center gap-2">
                             <GraduationCap className="w-4 h-4 text-primary" />
-                            SAGE Advanced Workflow Strategies
+                            AXIOM Advanced Workflow Strategies
                           </h3>
                           <p className="text-xs text-muted-foreground">
                             Professional writing strategies to reduce cognitive load and overcome writer's block.

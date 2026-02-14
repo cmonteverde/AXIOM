@@ -177,11 +177,11 @@
     text-rendering: optimizeLegibility;
   }
 
-  .sage-dark-section {
+  .axiom-dark-section {
     background-color: hsl(224 30% 14%);
     color: hsl(220 15% 92%);
   }
-  .dark .sage-dark-section {
+  .dark .axiom-dark-section {
     background-color: hsl(230 12% 12%);
     color: hsl(220 15% 92%);
   }

@@ -5,7 +5,7 @@ import { insertManuscriptSchema, profileSetupSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
-import { buildSageSystemPrompt, LEARN_LINK_URLS } from "./sage-prompt";
+import { buildAxiomSystemPrompt, LEARN_LINK_URLS } from "./axiom-prompt";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -195,7 +195,7 @@ export async function registerRoutes(
 
       const truncatedText = textToAnalyze.slice(0, 30000);
 
-      const systemPrompt = buildSageSystemPrompt(manuscript.stage || "draft", selectedHelpTypes);
+      const systemPrompt = buildAxiomSystemPrompt(manuscript.stage || "draft", selectedHelpTypes);
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

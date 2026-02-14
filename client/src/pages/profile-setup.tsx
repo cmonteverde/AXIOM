@@ -41,7 +41,7 @@ const ACADEMIC_FIELDS = [
 const LEARNING_MODES = [
   { value: "fast", label: "Fast Mode", description: "Concise feedback" },
   { value: "learning", label: "Learning Mode", description: "Detailed explanations" },
-  { value: "adaptive", label: "Adaptive", description: "SAGE adjusts (Recommended)" },
+  { value: "adaptive", label: "Adaptive", description: "AXIOM adjusts (Recommended)" },
 ];
 
 export default function ProfileSetup() {

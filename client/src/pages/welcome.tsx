@@ -17,6 +17,7 @@ import {
   FileText,
   Info,
   Star,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,106 +44,106 @@ import { useEffect, useRef, useState } from "react";
 const FEATURES = [
   {
     icon: FileSearch,
-    title: "11-Phase Manuscript Analysis",
-    description: "From document classification to writing standards — every section evaluated against scholarly best practices.",
+    title: "11-Phase Rigor Audit",
+    description: "Every section stress-tested against publication standards. No blind spots, no guesswork.",
     badge: null,
   },
   {
     icon: ClipboardList,
-    title: "Reporting Guideline Matching",
-    description: "Automatically identifies your study design and maps to CONSORT, PRISMA, STROBE, COREQ, STARD, and more.",
-    badge: "Smart",
+    title: "Reporting Guideline Enforcement",
+    description: "Auto-detects your study design and maps to CONSORT, PRISMA, STROBE, COREQ, STARD, and more.",
+    badge: "Auto",
   },
   {
     icon: AlertTriangle,
-    title: "Severity-Based Feedback",
-    description: "Issues ranked as Critical, Important, or Minor so you know exactly what to fix first before submission.",
+    title: "Severity-Ranked Violations",
+    description: "Critical, Important, or Minor — so you fix what will get you desk-rejected first.",
     badge: null,
   },
   {
     icon: BookOpenCheck,
     title: "CaRS & 5-Move Models",
-    description: "Your Abstract and Introduction analyzed against the 5-Move Abstract and Create-a-Research-Space models.",
+    description: "Abstract and Introduction audited against the 5-Move Abstract and Create-a-Research-Space models.",
     badge: null,
   },
   {
     icon: Target,
-    title: "Why-Based Pedagogy",
-    description: "Every suggestion explains WHY it matters with links to ICMJE, EQUATOR, APA, COPE, and Nature standards.",
-    badge: "Learn",
+    title: "Evidence-Backed Standards",
+    description: "Every finding cites ICMJE, EQUATOR, APA, COPE, or Nature guidelines. No vague suggestions.",
+    badge: "Cited",
   },
   {
     icon: Award,
     title: "Gamified Progress",
-    description: "Earn XP, level up, maintain streaks, and unlock achievements as you improve your scholarly writing.",
+    description: "Earn XP, level up, maintain streaks, and unlock achievements as you strengthen your manuscripts.",
     badge: null,
   },
   {
     icon: Shield,
     title: "Ethics & Transparency Audit",
-    description: "Checks for IRB approvals, AI disclosure (ICMJE 2024), COI declarations, and CRediT author roles.",
+    description: "Catches missing IRB approvals, AI disclosure gaps (ICMJE 2024), COI omissions, and CRediT roles.",
     badge: null,
   },
   {
     icon: Layers,
     title: "Zero-I Perspective Check",
-    description: "Detects first-person pronouns and subjective adjectives for objective, publication-ready writing.",
+    description: "Flags first-person pronouns and subjective adjectives that undermine objectivity.",
     badge: null,
   },
 ];
 
 const BENEFITS = [
   {
-    icon: GraduationCap,
-    title: "Learn While You Write",
-    description: "Every piece of feedback is a micro-lesson backed by authoritative sources.",
+    icon: AlertTriangle,
+    title: "Catch Desk Rejections Early",
+    description: "Surface the exact compliance gaps that editors flag in the first 60 seconds.",
   },
   {
     icon: BarChart3,
-    title: "Readiness Score",
-    description: "A weighted score across 9 categories tells you exactly how close you are to submission.",
+    title: "Audit Score",
+    description: "A weighted score across 9 categories tells you exactly how far you are from submission-ready.",
   },
   {
-    icon: Sparkles,
+    icon: Zap,
     title: "Powered by UMA Framework",
-    description: "Built on the Universal Manuscript Architecture with dual-engine evaluation logic.",
+    description: "Built on the Universal Manuscript Architecture with dual-engine validation logic.",
   },
   {
     icon: BookOpen,
-    title: "21+ Curated Resources",
-    description: "Direct links to authoritative writing guides from ICMJE, Nature, EQUATOR, APA, and COPE.",
+    title: "21+ Curated Standards",
+    description: "Direct links to authoritative guidelines from ICMJE, Nature, EQUATOR, APA, and COPE.",
   },
 ];
 
 const FAQ_ITEMS = [
   {
-    q: "What is SAGE?",
-    a: "SAGE (Scholarly Assistant for Guided Excellence) is an AI-powered research mentor that analyzes your manuscript across 11 phases and provides severity-ranked feedback based on reporting guidelines like CONSORT, PRISMA, and STROBE.",
+    q: "What is AXIOM?",
+    a: "AXIOM is an AI-powered pre-submission audit tool that stress-tests your manuscript across 11 phases and surfaces severity-ranked compliance gaps based on reporting guidelines like CONSORT, PRISMA, and STROBE.",
   },
   {
-    q: "Does SAGE write my paper for me?",
-    a: "No. SAGE is an educational tool that evaluates your existing manuscript and explains why specific changes strengthen your work. It complements — never replaces — human mentorship from advisors and colleagues.",
+    q: "Does AXIOM write my paper for me?",
+    a: "No. AXIOM validates your existing manuscript against publication standards and explains why specific issues will trigger reviewer objections. It complements — never replaces — advisor feedback.",
   },
   {
-    q: "What types of manuscripts does SAGE support?",
-    a: "SAGE supports RCTs, systematic reviews, observational studies, qualitative research, diagnostic studies, animal research, and prediction models. It automatically classifies your document and selects the appropriate reporting guideline.",
+    q: "What types of manuscripts does AXIOM support?",
+    a: "AXIOM audits RCTs, systematic reviews, observational studies, qualitative research, diagnostic studies, animal research, and prediction models. It auto-classifies your document and selects the correct reporting guideline.",
   },
   {
     q: "Is my manuscript data private?",
-    a: "SAGE stores your learning progress and analysis results but does not permanently store your full manuscript text beyond what is needed for the session. You can delete all your data at any time from the dashboard.",
+    a: "AXIOM stores your audit results but does not permanently store your full manuscript text beyond what is needed for the session. You can delete all your data at any time from the dashboard.",
   },
   {
     q: "What file formats can I upload?",
-    a: "SAGE accepts PDF, DOCX, and TXT files up to 50MB. You can also paste your manuscript text directly for immediate analysis.",
+    a: "AXIOM accepts PDF, DOCX, and TXT files up to 50MB. You can also paste your manuscript text directly for immediate auditing.",
   },
   {
     q: "How does the scoring work?",
-    a: "Your readiness score is weighted across 9 categories: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), and Zero-I (10%).",
+    a: "Your audit score is weighted across 9 categories: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), and Zero-I (10%).",
   },
 ];
 
 const STATS = [
-  { value: "11", label: "Analysis Phases" },
+  { value: "11", label: "Audit Phases" },
   { value: "7+", label: "Reporting Guidelines" },
   { value: "9", label: "Scoring Categories" },
 ];
@@ -152,48 +153,48 @@ const TESTIMONIALS = [
     name: "Dr. Priya Sharma",
     role: "Epidemiology, Johns Hopkins",
     photo: testimonial1,
-    quote: "SAGE doesn't just flag issues — it teaches me WHY I need to make each revision. It's like having a writing mentor available 24/7.",
+    quote: "AXIOM caught 3 CONSORT violations I completely missed. Without it, that would have been a desk rejection.",
     stars: 5,
   },
   {
     name: "Prof. Marcus Johnson",
     role: "Biostatistics, Duke University",
     photo: testimonial2,
-    quote: "The reporting guideline matching is incredible. It automatically identified my RCT needed CONSORT 2025 and caught 3 critical items I missed.",
+    quote: "The reporting guideline matching is incredible. It auto-detected my RCT needed CONSORT 2025 and flagged critical items immediately.",
     stars: 5,
   },
   {
     name: "Dr. Wei Lin",
     role: "Public Health, UCLA",
     photo: testimonial3,
-    quote: "My first manuscript was rejected twice. After SAGE analysis, I addressed every reviewer concern before resubmission. Accepted with minor revisions!",
+    quote: "My first manuscript was rejected twice. After the AXIOM audit, I addressed every compliance gap before resubmission. Accepted with minor revisions.",
     stars: 5,
   },
   {
     name: "Prof. Richard Hensley",
     role: "Clinical Research, Oxford",
     photo: testimonial4,
-    quote: "The 5-Move Abstract check alone saved me hours. I now use SAGE for every manuscript before sending to my co-authors for review.",
+    quote: "The 5-Move Abstract check alone saved me hours. I now run AXIOM on every manuscript before sending to co-authors.",
     stars: 5,
   },
   {
     name: "Dr. Sofia Reyes",
     role: "Neuroscience, Stanford",
     photo: testimonial5,
-    quote: "As a non-native English speaker, the Zero-I Perspective check is a game-changer. It catches subtle language issues that spell-checkers miss entirely.",
+    quote: "As a non-native English speaker, the Zero-I check is a game-changer. It catches subtle objectivity issues that spell-checkers miss entirely.",
     stars: 5,
   },
   {
     name: "Dr. Karim Al-Rashid",
     role: "Environmental Science, MIT",
     photo: testimonial6,
-    quote: "The ethics and transparency audit caught my missing data availability statement and CRediT taxonomy. Those would have been desk-rejected.",
+    quote: "The ethics audit caught my missing data availability statement and CRediT taxonomy. Those would have been instant desk rejections.",
     stars: 5,
   },
 ];
 
 const PREVIEW_TABS = [
-  { id: "analysis", label: "Manuscript Analysis", icon: FileSearch },
+  { id: "analysis", label: "Manuscript Audit", icon: FileSearch },
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
 ] as const;
 
@@ -260,13 +261,13 @@ function ProductPreview() {
             <div className="w-2.5 h-2.5 rounded-full bg-chart-3/70" />
             <div className="w-2.5 h-2.5 rounded-full bg-chart-2/70" />
             <span className="text-[11px] text-foreground/50 ml-2">
-              {activeTab === "analysis" ? "sage — manuscript workspace" : "sage — dashboard"}
+              {activeTab === "analysis" ? "axiom — manuscript audit" : "axiom — dashboard"}
             </span>
           </div>
           <div className="relative">
             <img
               src={activeTab === "analysis" ? analysisScreenshot : dashboardScreenshot}
-              alt={activeTab === "analysis" ? "SAGE manuscript analysis workspace showing split-view with manuscript text and AI-powered feedback panel" : "SAGE dashboard with gamification stats, manuscripts list, and leaderboard"}
+              alt={activeTab === "analysis" ? "AXIOM manuscript audit workspace showing split-view with manuscript text and rigor analysis panel" : "AXIOM dashboard with gamification stats, manuscripts list, and audit history"}
               className="w-full h-auto block"
               data-testid={`img-preview-${activeTab}`}
             />
@@ -439,12 +440,12 @@ export default function Welcome() {
         data-testid="nav-bar"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center" data-testid="text-nav-logo">
-            <img src={sageLogoPath} alt="SAGE" className="w-14 h-14 object-contain" />
+          <div className="flex items-center gap-2" data-testid="text-nav-logo">
+            <img src={sageLogoPath} alt="AXIOM" className="w-14 h-14 object-contain" />
           </div>
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-features">Features</a>
-            <a href="#benefits" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-benefits">Benefits</a>
+            <a href="#benefits" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-benefits">Why AXIOM</a>
             <a href="#faq" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-faq">FAQ</a>
           </div>
           <Button
@@ -467,19 +468,18 @@ export default function Welcome() {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative">
           <Badge variant="secondary" className="mb-6" data-testid="badge-hero">
-            <Sparkles className="w-3 h-3 mr-1.5" />
-            AI-Powered Manuscript Mentor
+            <Shield className="w-3 h-3 mr-1.5" />
+            Pre-Submission Manuscript Audit
           </Badge>
           <h1
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6"
             data-testid="text-welcome-title"
           >
-            Your Research Deserves{" "}
-            <span className="text-primary">Expert-Level</span>{" "}
-            Feedback
+            Stop Guessing.{" "}
+            <span className="text-primary">Start Publishing.</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
-            SAGE analyzes your manuscript across 11 phases using reporting guidelines like CONSORT, PRISMA, and STROBE — so you can publish with confidence.
+            Your research is too valuable to risk a desk rejection. AXIOM stress-tests your manuscript across 11 phases against CONSORT, PRISMA, and STROBE before you submit.
           </p>
           <p className="text-sm text-muted-foreground/70 mb-8">
             Developed by Corrie Monteverde, PhD
@@ -491,7 +491,7 @@ export default function Welcome() {
               size="lg"
               className="px-8"
             >
-              Get Started Free
+              Run Pre-Submission Audit
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -511,7 +511,7 @@ export default function Welcome() {
       <section className="pb-20 px-4 sm:px-6 lg:px-8" data-testid="section-product-preview">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-6">
-            <p className="text-sm text-muted-foreground">See SAGE in action</p>
+            <p className="text-sm text-muted-foreground">See AXIOM in action</p>
           </div>
           <ProductPreview />
         </div>
@@ -521,10 +521,10 @@ export default function Welcome() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              Designed for Scholarly Rigor
+              Built for Publication-Grade Rigor
             </h2>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Features built to strengthen every section of your manuscript against publication standards.
+              Every audit phase targets the exact gaps that trigger desk rejections and reviewer objections.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -550,14 +550,14 @@ export default function Welcome() {
         </div>
       </section>
 
-      <section id="benefits" className="sage-dark-section py-20 px-4 sm:px-6 lg:px-8">
+      <section id="benefits" className="axiom-dark-section py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              Why Researchers Choose SAGE
+              Why Researchers Trust AXIOM
             </h2>
             <p className="opacity-70 text-base sm:text-lg max-w-2xl mx-auto">
-              More than feedback — a guided learning experience for every stage of your manuscript.
+              Surface compliance gaps before editors do. Every audit is backed by authoritative standards.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-10">
@@ -583,10 +583,10 @@ export default function Welcome() {
             <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-semibold">
-                SAGE complements — never replaces — human guidance.
+                AXIOM validates — it never writes for you.
               </p>
               <p className="text-xs opacity-60 mt-1">
-                Always consult your advisor, mentor, and colleagues. SAGE is a teaching tool, not a co-author.
+                Always consult your advisor, mentor, and colleagues. AXIOM is a rigor-checking tool, not a co-author.
               </p>
             </div>
           </div>
@@ -596,9 +596,9 @@ export default function Welcome() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-6">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">How SAGE Works</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">How AXIOM Works</h2>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Three simple steps from upload to actionable feedback.
+              Three steps from upload to actionable audit results.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
@@ -606,19 +606,19 @@ export default function Welcome() {
               {
                 step: "01",
                 title: "Upload Your Manuscript",
-                description: "Upload a PDF, DOCX, or TXT file — or paste your text directly. SAGE extracts and prepares your content automatically.",
+                description: "Upload a PDF, DOCX, or TXT file — or paste your text directly. AXIOM extracts and prepares your content automatically.",
                 icon: FileText,
               },
               {
                 step: "02",
-                title: "Choose Your Focus Areas",
-                description: "Select which sections and standards matter most. SAGE tailors the analysis to your needs and manuscript stage.",
+                title: "Select Audit Focus",
+                description: "Choose which sections and standards to stress-test. AXIOM tailors the audit to your manuscript stage and needs.",
                 icon: Target,
               },
               {
                 step: "03",
-                title: "Get Expert Feedback",
-                description: "Receive severity-ranked issues, a readiness score, and curated learning resources — all in a split-view workspace.",
+                title: "Get Your Audit Report",
+                description: "Receive severity-ranked violations, an audit score, and cited standards — all in a split-view workspace.",
                 icon: CheckCircle2,
               },
             ].map((item) => (
@@ -656,13 +656,13 @@ export default function Welcome() {
         </div>
       </section>
 
-      <section className="sage-dark-section py-20 px-4 sm:px-6 lg:px-8">
+      <section className="axiom-dark-section py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Ready to Strengthen Your Manuscript?
+            Don't Submit Without an Audit.
           </h2>
           <p className="opacity-70 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-            Upload your paper and get actionable, evidence-based feedback in minutes.
+            Upload your manuscript and surface compliance gaps before editors do.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Button
@@ -671,7 +671,7 @@ export default function Welcome() {
               size="lg"
               className="px-8"
             >
-              Get Started Free
+              Start Rigor Check
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -688,10 +688,10 @@ export default function Welcome() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center mb-3">
-                <img src={sageLogoPath} alt="SAGE" className="w-12 h-12 object-contain" />
+                <img src={sageLogoPath} alt="AXIOM" className="w-12 h-12 object-contain" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Scholarly Assistant for Guided Excellence.
+                AXIOM stress-tests manuscripts against top-tier rigor standards (CONSORT, PRISMA, STROBE) before submission.
                 <br />
                 Developed by Corrie Monteverde, PhD
               </p>
@@ -700,7 +700,7 @@ export default function Welcome() {
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Product</h4>
               <ul className="space-y-2">
                 <li><a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-features">Features</a></li>
-                <li><a href="#benefits" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-benefits">Benefits</a></li>
+                <li><a href="#benefits" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-benefits">Why AXIOM</a></li>
                 <li><a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-faq">FAQ</a></li>
               </ul>
             </div>
@@ -714,7 +714,7 @@ export default function Welcome() {
             </div>
           </div>
           <div className="mt-10 pt-6 border-t border-border flex items-center justify-between flex-wrap gap-3">
-            <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} SAGE. All rights reserved.</p>
+            <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} AXIOM. All rights reserved.</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Shield className="w-3 h-3" /> Privacy-first. Your data, your control.
             </p>

@@ -239,7 +239,7 @@ export default function Dashboard() {
       <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16">
           <div className="flex items-center" data-testid="text-dashboard-logo">
-            <img src={sageLogoPath} alt="SAGE" className="w-14 h-14 object-contain" data-testid="img-logo" />
+            <img src={sageLogoPath} alt="AXIOM" className="w-14 h-14 object-contain" data-testid="img-logo" />
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
@@ -404,7 +404,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-base font-semibold mb-1">No manuscripts yet</h3>
                     <p className="text-sm text-muted-foreground mb-5 max-w-sm">
-                      Upload your first manuscript and let SAGE analyze it across 11 scholarly phases.
+                      Upload your first manuscript and let AXIOM audit it across 11 rigor phases.
                     </p>
                     <Button
                       onClick={() => navigate("/manuscript/new")}
@@ -472,7 +472,7 @@ export default function Dashboard() {
                               {m.analysisStatus === "processing" && (
                                 <Badge variant="secondary" className="text-xs">
                                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  Analyzing
+                                  Auditing
                                 </Badge>
                               )}
                               {m.analysisStatus === "completed" && m.readinessScore !== null && (
@@ -482,7 +482,7 @@ export default function Dashboard() {
                                 </Badge>
                               )}
                               {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
-                                <Badge variant="outline" className="text-xs">Not analyzed</Badge>
+                                <Badge variant="outline" className="text-xs">Not audited</Badge>
                               )}
                               <Button
                                 size="icon"
@@ -514,7 +514,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
-                  { title: "First Analysis", description: "Run your first SAGE analysis", icon: Sparkles, earned: analyzedCount > 0 },
+                  { title: "First Audit", description: "Run your first AXIOM audit", icon: Sparkles, earned: analyzedCount > 0 },
                   { title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
                   { title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
                 ].map((achievement) => (

@@ -1,7 +1,7 @@
-# SAGE - Scholarly Assistant for Guided Excellence
+# AXIOM - Pre-Submission Manuscript Audit
 
 ## Overview
-SAGE is an AI-powered research mentor that guides users through the scholarly manuscript lifecycle using gamification and "Why-based" pedagogy.
+AXIOM is an AI-powered pre-submission manuscript auditing tool that stress-tests research papers across 11 rigor phases using reporting guidelines (CONSORT, PRISMA, STROBE). It surfaces compliance gaps, severity-ranked violations, and structural weaknesses before editors and reviewers do. Uses gamification to track progress.
 
 ## Architecture
 - **Frontend**: React (Vite) + Tailwind CSS + shadcn/ui components
@@ -9,17 +9,23 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Database**: PostgreSQL (Drizzle ORM)
 - **Authentication**: Replit Auth (OIDC with Google, GitHub, Apple, email)
 - **File Storage**: Replit App Storage (GCS-backed object storage)
-- **AI**: OpenAI API (process.env.OPENAI_API_KEY) for manuscript analysis using UMA framework
+- **AI**: OpenAI API (process.env.OPENAI_API_KEY) for manuscript auditing using UMA framework
 - **Font**: Plus Jakarta Sans (primary), Inter (fallback), Source Serif 4 (serif), JetBrains Mono (monospace)
 - **Color Palette** (modernized, desaturated for readability):
   - Primary Purple: hsl(258, 70%, 55%) — actions, headings, brand
   - Background: hsl(250, 20%, 98%) — near-white with subtle cool tone
   - Card: pure white — clean card surfaces
-  - Sage Green: #4ADE80 (learning, progress, success states)
+  - Sage Green: #4ADE80 (progress, success states)
   - Insight Gold: #FACC15 (highlights only, used sparingly)
   - Foreground: hsl(224, 30%, 14%) — rich dark text for readability
   - Muted Foreground: hsl(220, 10%, 42%) — secondary text with good contrast
-- **Logo**: attached_assets/SAGE_logo_transparent.png (transparent background, shown on welcome screen)
+- **Logo**: attached_assets/SAGE_logo_transparent.png (transparent background, used as AXIOM logo placeholder)
+
+## Brand Voice
+- Urgent, authoritative "auditing" language — not educational/helpful "mentor" language
+- Key terminology: Audit (not Analysis), Audit Score (not Readiness Score), Violations/Required Fixes (not Suggestions)
+- CTAs: "Run Pre-Submission Audit", "Start Rigor Check"
+- Dark sections use `.axiom-dark-section` CSS class
 
 ## Project Structure
 - `client/src/pages/` - Page components (welcome, profile-setup, dashboard, new-manuscript, manuscript-workspace)
@@ -27,7 +33,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `client/src/hooks/use-auth.ts` - Authentication hook
 - `client/src/hooks/use-upload.ts` - File upload hook
 - `client/src/lib/auth-utils.ts` - Auth error handling utilities
-- `server/` - Express server (routes.ts, storage.ts, db.ts, sage-prompt.ts)
+- `server/` - Express server (routes.ts, storage.ts, db.ts, axiom-prompt.ts)
 - `server/replit_integrations/auth/` - Replit Auth integration
 - `server/replit_integrations/object_storage/` - App Storage integration
 - `shared/schema.ts` - Drizzle ORM schema definitions
@@ -50,7 +56,7 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - `DELETE /api/manuscripts/:id` - Delete a manuscript (with ownership check)
 - `POST /api/manuscripts/:id/extract` - Extract text from uploaded manuscript file
 - `POST /api/manuscripts/:id/paste-text` - Save pasted manuscript text directly
-- `POST /api/manuscripts/:id/analyze` - Run AI analysis using OpenAI + UMA framework
+- `POST /api/manuscripts/:id/analyze` - Run AI audit using OpenAI + UMA framework
 - `POST /api/uploads/request-url` - Get presigned URL for file upload (max 50MB)
 
 ## User Flow
@@ -60,12 +66,12 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 4. New Manuscript: Upload file or paste text (single step) -> redirects to manuscript workspace
 5. File upload (up to 50MB) -> Object Storage -> Text extraction (PDF/DOCX/TXT) -> Full text + preview saved
 6. Or paste manuscript sections directly -> Text saved
-7. Manuscript workspace (/manuscript/:id): Split-view, left (60%) text, right (40%) analysis panel
-8. Click "Run SAGE Analysis" -> choose focus areas -> OpenAI analyzes using UMA -> Results stored in DB
+7. Manuscript workspace (/manuscript/:id): Split-view, left (60%) text, right (40%) audit panel
+8. Click "Run AXIOM Audit" -> choose focus areas -> OpenAI audits using UMA -> Results stored in DB
 
-## AI Analysis (11-Phase SAGE Analysis Workflow)
-- System prompt defined in `server/sage-prompt.ts` (buildSageSystemPrompt function + LEARN_LINK_URLS export)
-- Uses OpenAI GPT-4o with 11-Phase Analysis Workflow based on SAGE_AI_ANALYSIS_INSTRUCTIONS.md
+## AI Audit (11-Phase AXIOM Audit Workflow)
+- System prompt defined in `server/axiom-prompt.ts` (buildAxiomSystemPrompt function + LEARN_LINK_URLS export)
+- Uses OpenAI GPT-4o with 11-Phase Audit Workflow based on UMA framework
 - **Phase 1**: Document Classification (manuscript type, discipline, study design, reporting guideline)
 - **Phase 2**: Reporting Guideline Decision Tree (CONSORT 2025 for RCTs, PRISMA 2020 for systematic reviews, STROBE for observational, COREQ for qualitative, STARD for diagnostics, ARRIVE for animal, TRIPOD+AI for prediction models)
 - **Phase 3**: Structured 5-Move Abstract (Hook, Gap, Approach, Findings, Impact)
@@ -77,15 +83,15 @@ SAGE is an AI-powered research mentor that guides users through the scholarly ma
 - **Phase 9**: Conclusions (New Reality synthesis)
 - **Phase 10**: Zero-I Perspective (first-person pronoun removal)
 - **Phase 11**: Writing Standards & Technical Sweep
-- **Dual Engine**: UMA 1.0 (evaluation logic) + UMA v2.0 (educational references from ICMJE, EQUATOR, APA, COPE, Nature, Springer, etc.)
+- **Dual Engine**: UMA 1.0 (evaluation logic) + UMA v2.0 (references from ICMJE, EQUATOR, APA, COPE, Nature, Springer, etc.)
 - **Severity Levels**: CRITICAL (must fix before submission), IMPORTANT (strongly recommended), MINOR (quality improvements)
 - **Feedback Protocol**: Every item includes Issue, Why It Matters, Recommendation, Standard, Learn More with severity level
 - Returns structured JSON: readinessScore, executiveSummary, documentClassification, scoreBreakdown (9 categories), criticalIssues (with severity), detailedFeedback (with severity + resourceTopic), actionItems, abstractAnalysis, zeroIPerspective, strengthsToMaintain, learnLinks
 - Score breakdown weighted contributions: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), Zero-I (10%)
 - Ethics & Transparency checks: IRB approvals, AI disclosure (ICMJE 2024), COI declarations, data availability, funding, author contributions (CRediT)
-- Analysis options dialog lets users select focus areas before each analysis
-- Analysis stored in manuscripts.analysis_json (JSONB)
-- Loaded from DB on subsequent visits (no re-analysis needed)
+- Audit options dialog lets users select focus areas before each audit
+- Audit results stored in manuscripts.analysis_json (JSONB)
+- Loaded from DB on subsequent visits (no re-audit needed)
 - Auto-re-extraction triggers when fullText is null but fileKey exists (for legacy manuscripts)
 - LEARN_LINK_URLS map covers 21 topic areas with curated URLs from UMA v2.0 references
 

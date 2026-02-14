@@ -189,7 +189,7 @@ export default function NewManuscript() {
             {progressStep >= steps.length - 1 ? "Manuscript Ready" : "Preparing Your Manuscript"}
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            {progressStep >= steps.length - 1 ? "Opening your workspace..." : "SAGE is setting things up..."}
+            {progressStep >= steps.length - 1 ? "Opening your workspace..." : "AXIOM is preparing your audit..."}
           </p>
 
           <div className="w-full h-3 bg-muted rounded-full mb-2 overflow-hidden">
