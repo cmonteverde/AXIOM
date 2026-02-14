@@ -27,7 +27,9 @@ import {
   ChevronRight,
   Award,
   Sparkles,
+  HelpCircle,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { Manuscript } from "@shared/schema";
 import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
@@ -312,27 +314,48 @@ export default function Dashboard() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 rounded-md bg-muted/50">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <Flame className="w-5 h-5 text-chart-3" />
-                        <span className="text-2xl font-bold" data-testid="text-streak">{streak}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Day Streak</p>
-                    </div>
-                    <div className="text-center p-4 rounded-md bg-muted/50">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <Sparkles className="w-5 h-5 text-primary" />
-                        <span className="text-2xl font-bold" data-testid="text-xp">{xp}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Total XP</p>
-                    </div>
-                    <div className="text-center p-4 rounded-md bg-muted/50">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <Trophy className="w-5 h-5 text-chart-2" />
-                        <span className="text-2xl font-bold" data-testid="text-achievements">0</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Achievements</p>
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-center p-4 rounded-md bg-muted/50 cursor-help">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <Flame className="w-5 h-5 text-chart-3" />
+                            <span className="text-2xl font-bold" data-testid="text-streak">{streak}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Day Streak</p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                        Consecutive days with at least 1 manuscript analyzed. Keep the streak going!
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-center p-4 rounded-md bg-muted/50 cursor-help">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            <span className="text-2xl font-bold" data-testid="text-xp">{xp}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Total XP</p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                        Experience points earned from completing audits. More complex manuscripts earn more XP.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-center p-4 rounded-md bg-muted/50 cursor-help">
+                          <div className="flex items-center justify-center gap-1.5 mb-1">
+                            <Trophy className="w-5 h-5 text-chart-2" />
+                            <span className="text-2xl font-bold" data-testid="text-achievements">0</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Achievements</p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+                        Unlock badges by hitting milestones: first upload, first audit, streaks, and level-ups.
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </Card>
 
@@ -402,10 +425,36 @@ export default function Dashboard() {
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <Upload className="w-7 h-7 text-primary" />
                     </div>
-                    <h3 className="text-base font-semibold mb-1">No manuscripts yet</h3>
-                    <p className="text-sm text-muted-foreground mb-5 max-w-sm">
-                      Upload your first manuscript and let AXIOM audit it across 11 rigor phases.
-                    </p>
+                    <h3 className="text-base font-semibold mb-1">Get started in 3 steps</h3>
+                    <div className="text-left max-w-sm space-y-3 mb-5 mt-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-primary">1</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Upload your manuscript</p>
+                          <p className="text-xs text-muted-foreground">PDF, DOCX, or paste text directly. Drafts and final versions both work.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-primary">2</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Select audit focus areas</p>
+                          <p className="text-xs text-muted-foreground">Choose which sections to audit, or select "Comprehensive Review" for full coverage.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-primary">3</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Review findings and fix issues</p>
+                          <p className="text-xs text-muted-foreground">AXIOM scores your manuscript, flags critical issues, and gives actionable fix suggestions.</p>
+                        </div>
+                      </div>
+                    </div>
                     <Button
                       onClick={() => navigate("/manuscript/new")}
                       data-testid="button-upload-manuscript"
@@ -476,10 +525,17 @@ export default function Dashboard() {
                                 </Badge>
                               )}
                               {m.analysisStatus === "completed" && m.readinessScore !== null && (
-                                <Badge variant="secondary" className="text-xs font-semibold">
-                                  <Star className="w-3 h-3 mr-1" />
-                                  {m.readinessScore}%
-                                </Badge>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-xs font-semibold cursor-help">
+                                      <Star className="w-3 h-3 mr-1" />
+                                      {m.readinessScore}%
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-[180px] text-center">
+                                    {m.readinessScore >= 75 ? "Submission-ready" : m.readinessScore >= 50 ? "Revisions needed" : "Major work needed"}
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                               {m.analysisStatus === "none" && !m.readinessScore && m.extractionStatus !== "processing" && (
                                 <Badge variant="outline" className="text-xs">Not audited</Badge>

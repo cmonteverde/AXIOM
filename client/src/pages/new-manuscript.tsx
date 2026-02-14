@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { isUnauthorizedError } from "@/lib/auth-utils";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle2, Loader2, FileText, X, ClipboardPaste } from "lucide-react";
+import { Upload, CheckCircle2, Loader2, FileText, X, ClipboardPaste, Info, ChevronDown } from "lucide-react";
 
 const PROGRESS_STEPS_UPLOAD = [
   "Uploading file to secure storage...",
@@ -25,6 +25,43 @@ const PROGRESS_STEPS_PASTE = [
   "Saving manuscript content...",
   "Done!",
 ];
+
+function UploadGuidance() {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="mb-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+        data-testid="button-upload-guidance"
+      >
+        <Info className="w-3.5 h-3.5" />
+        What should I upload?
+        <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && (
+        <div className="mt-2 p-3 rounded-md bg-muted/50 border border-border text-xs space-y-2 animate-in fade-in slide-in-from-top-1">
+          <div className="space-y-1.5">
+            <p className="font-medium text-foreground">Best results when your manuscript includes:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-sage shrink-0 mt-0.5" />All sections: Title, Abstract, Methods, Results, Discussion</li>
+              <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-sage shrink-0 mt-0.5" />Figure/table captions (images aren't analyzed, but captions are)</li>
+              <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-sage shrink-0 mt-0.5" />References section for citation completeness check</li>
+            </ul>
+          </div>
+          <div className="space-y-1.5 pt-1.5 border-t border-border">
+            <p className="font-medium text-foreground">Upload vs Paste:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li><span className="font-medium text-foreground">Upload (PDF/DOCX):</span> Best for formatted manuscripts. Text is auto-extracted.</li>
+              <li><span className="font-medium text-foreground">Paste text:</span> Best when you want to audit specific sections or a working draft.</li>
+            </ul>
+          </div>
+          <p className="text-muted-foreground/70 pt-1">Drafts work great — AXIOM helps at any stage. You can always re-audit after revisions.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NewManuscript() {
   const [, navigate] = useLocation();
@@ -260,7 +297,9 @@ export default function NewManuscript() {
         </button>
 
         <h1 className="text-2xl font-bold tracking-tight text-primary mb-1" data-testid="text-new-manuscript-title">New Manuscript</h1>
-        <p className="text-sm text-muted-foreground mb-6">Upload your manuscript or paste the text to get started.</p>
+        <p className="text-sm text-muted-foreground mb-4">Upload your manuscript or paste the text to get started.</p>
+
+        <UploadGuidance />
 
         <div className="flex gap-2 mb-4">
           <Button
