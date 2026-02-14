@@ -8,6 +8,114 @@ import OpenAI from "openai";
 import { buildAxiomSystemPrompt, LEARN_LINK_URLS } from "./axiom-prompt";
 import { autoDetectPaperType, loadModulesForType, loadWritingWorkflow, loadPaperTypesExplained, getPaperTypeLabel, type PaperType } from "./module-loader";
 import { rateLimit } from "./rate-limit";
+import { validateAnalysisResponse } from "./analysis-validator";
+
+/**
+ * Smart truncation: instead of hard-cutting at a character limit,
+ * detect section boundaries and keep proportional content from each section.
+ * This ensures the AI sees the full structure of the manuscript.
+ */
+function smartTruncate(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  // Try to find major section headers (common patterns in academic papers)
+  const sectionPattern = /\n\s*(abstract|introduction|background|literature review|methods|methodology|materials and methods|results|findings|discussion|conclusion|conclusions|limitations|references|acknowledgements|appendix|ethics|declarations?)\s*\n/gi;
+  const sections: { name: string; start: number; end: number }[] = [];
+  let match;
+
+  while ((match = sectionPattern.exec(text)) !== null) {
+    if (sections.length > 0) {
+      sections[sections.length - 1].end = match.index;
+    }
+    sections.push({ name: match[1].toLowerCase(), start: match.index, end: text.length });
+  }
+
+  // If we can't detect sections, fall back to keeping beginning and end
+  if (sections.length < 3) {
+    const keepFromStart = Math.floor(maxChars * 0.7);
+    const keepFromEnd = maxChars - keepFromStart - 100;
+    return text.slice(0, keepFromStart) +
+      "\n\n[... middle section truncated for length ...]\n\n" +
+      text.slice(text.length - keepFromEnd);
+  }
+
+  // Allocate characters proportionally, but ensure minimum per section
+  const minPerSection = Math.min(2000, Math.floor(maxChars / sections.length));
+  const overhead = 200; // for truncation markers
+  const available = maxChars - overhead;
+
+  // References section gets less space, methods/results/discussion get more
+  const priorityMultiplier: Record<string, number> = {
+    abstract: 1.5, introduction: 1.2, methods: 1.5, methodology: 1.5,
+    "materials and methods": 1.5, results: 1.5, findings: 1.5,
+    discussion: 1.3, conclusion: 1.0, conclusions: 1.0,
+    limitations: 1.2, references: 0.3, acknowledgements: 0.2,
+  };
+
+  const totalWeight = sections.reduce((sum, s) => {
+    const sectionLen = s.end - s.start;
+    return sum + sectionLen * (priorityMultiplier[s.name] || 1.0);
+  }, 0);
+
+  const parts: string[] = [];
+  for (const section of sections) {
+    const sectionText = text.slice(section.start, section.end);
+    const weight = sectionText.length * (priorityMultiplier[section.name] || 1.0);
+    const allocation = Math.max(minPerSection, Math.floor((weight / totalWeight) * available));
+
+    if (sectionText.length <= allocation) {
+      parts.push(sectionText);
+    } else {
+      parts.push(sectionText.slice(0, allocation) + "\n[... section truncated ...]");
+    }
+  }
+
+  // Include any text before the first section (title, author info, etc.)
+  const preSection = text.slice(0, sections[0].start);
+  if (preSection.trim()) {
+    return preSection.slice(0, 2000) + parts.join("");
+  }
+
+  return parts.join("");
+}
+
+/**
+ * Build specific instructions based on user-selected focus areas.
+ * This makes the AI spend more tokens on the areas the user cares about.
+ */
+function buildFocusInstructions(helpTypes: string[]): string {
+  if (!helpTypes || helpTypes.length === 0 || helpTypes.includes("Comprehensive Review")) {
+    return "AUDIT SCOPE: Comprehensive review — audit ALL sections with equal depth. Provide maximum feedback items across every area.";
+  }
+
+  const focusMap: Record<string, string> = {
+    "Title": "Title evaluation (length, keywords, SEO, filler phrases, field norms)",
+    "Abstract": "Abstract evaluation (Hyland Five-Move Model, word limits, structure, critical errors)",
+    "Introduction": "Introduction structure (CARS Model, gap statement, literature review depth)",
+    "Methods": "Methods reproducibility audit (study design, sample size, statistical plan, ethics, reporting guideline compliance)",
+    "Results": "Results audit (statistical reporting, effect sizes, CIs, figure/table quality, negative results)",
+    "Discussion": "Discussion evaluation (inverted pyramid, causal language, literature comparison, implications)",
+    "Limitations": "Limitations audit (3-part structure, coverage of methodological/scope/generalizability issues)",
+    "Conclusions & Recommendations": "Conclusions completeness and strength of evidence",
+    "Keywords": "Keywords optimization (MeSH alignment, synonym mapping, controlled vocabularies)",
+    "Structural Analysis": "Overall structural analysis (IMRAD compliance, section ordering, word count proportions)",
+    "Language & Clarity": "Writing quality audit (voice/tense by section, precision, grammar, nominalization, jargon)",
+    "Statistics": "Statistical reporting audit (APA 7th compliance, effect sizes, CIs, test selection, assumptions)",
+    "Reference Management": "Reference audit (citation density, recency, self-citation, format, DOIs)",
+    "Ethics": "Ethics and transparency audit (IRB, informed consent, COI, CRediT, data/code availability, AI disclosure)",
+    "Cover Letter": "Cover letter evaluation (journal fit, key findings summary, suggested reviewers)",
+    "Reviewer Response": "Reviewer response strategy (point-by-point structure, diplomatic tone, evidence-based rebuttals)",
+    "Journal Selection": "Journal selection guidance (scope fit, impact factor, turnaround time, open access options)",
+  };
+
+  const focusAreas = helpTypes
+    .map(t => focusMap[t])
+    .filter(Boolean);
+
+  if (focusAreas.length === 0) return "";
+
+  return `AUDIT SCOPE: The user has specifically requested DEEP analysis of the following areas. Provide EXTRA detailed feedback for these:\n${focusAreas.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\nFor the selected focus areas, provide at minimum 3 feedback items per area with specific quotes from the manuscript. You should still briefly cover other sections, but allocate 70% of your analysis to the focus areas above.`;
+}
 
 // General API rate limit: 100 requests per minute per user
 const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
@@ -238,7 +346,8 @@ export async function registerRoutes(
 
       const openai = new OpenAI({ apiKey });
 
-      const truncatedText = textToAnalyze.slice(0, 30000);
+      // Smart truncation: preserve all sections proportionally instead of hard cutoff
+      const truncatedText = smartTruncate(textToAnalyze, 50000);
 
       const moduleData = loadModulesForType(paperType);
       const paperTypeLabel = getPaperTypeLabel(paperType);
@@ -246,21 +355,38 @@ export async function registerRoutes(
       const systemPrompt = buildAxiomSystemPrompt(manuscript.stage || "draft", selectedHelpTypes);
       const moduleContext = `\n\n--- LOADED MODULES: ${moduleData.files.join(", ")} ---\n--- PAPER TYPE: ${paperTypeLabel} ---\n\n${moduleData.content}`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt + moduleContext },
-          { role: "user", content: `Paper Type: ${paperTypeLabel}\nModules Loaded: ${moduleData.files.join(", ")}\n\nPlease provide a comprehensive, section-by-section analysis of this manuscript using the loaded type-specific modules. Be exhaustive - cover every section present and provide multiple feedback items per section:\n\n${truncatedText}` },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-        max_tokens: 8000,
-      });
+      // Build focus area instructions
+      const focusInstructions = buildFocusInstructions(selectedHelpTypes);
 
-      const content = response.choices[0]?.message?.content;
+      // Retry logic for OpenAI calls
+      let content: string | null = null;
+      let lastError: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: systemPrompt + moduleContext },
+              { role: "user", content: `Paper Type: ${paperTypeLabel}\nModules Loaded: ${moduleData.files.join(", ")}\nManuscript Length: ${textToAnalyze.length} characters\n\n${focusInstructions}\n\nPlease provide a comprehensive, section-by-section analysis of this manuscript using the loaded type-specific modules. Be exhaustive - cover every section present and provide multiple feedback items per section. For each finding, quote the specific text from the manuscript that relates to the issue. Aim for at least 20 detailed feedback items and 15 action items. Every critical issue MUST have a corresponding action item.\n\n--- MANUSCRIPT TEXT ---\n${truncatedText}` },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 16000,
+          });
+          content = response.choices[0]?.message?.content ?? null;
+          if (content) break;
+        } catch (err: any) {
+          lastError = err;
+          if (attempt < 2) {
+            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+          }
+        }
+      }
+
       if (!content) {
         await storage.updateManuscriptAnalysis(manuscript.id, null, "failed");
-        return res.status(500).json({ message: "No response from AI" });
+        console.error("OpenAI failed after 3 attempts:", lastError);
+        return res.status(500).json({ message: "Analysis failed after multiple attempts. Please try again." });
       }
 
       let analysisJson;
@@ -270,6 +396,9 @@ export async function registerRoutes(
         await storage.updateManuscriptAnalysis(manuscript.id, null, "failed");
         return res.status(500).json({ message: "Failed to parse AI response" });
       }
+
+      // Validate and fill defaults for missing fields
+      analysisJson = validateAnalysisResponse(analysisJson);
 
       if (analysisJson.learnLinks && Array.isArray(analysisJson.learnLinks)) {
         analysisJson.learnLinks = analysisJson.learnLinks.map((link: any) => {
@@ -327,7 +456,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Forbidden" });
       }
       const { paperType } = req.body;
-      const validTypes = ["quantitative_experimental", "observational", "qualitative", "systematic_review", "mixed_methods", "generic"];
+      const validTypes = ["quantitative_experimental", "observational", "qualitative", "systematic_review", "mixed_methods", "case_report", "generic"];
       if (!paperType || !validTypes.includes(paperType)) {
         return res.status(400).json({ message: "Invalid paper type" });
       }

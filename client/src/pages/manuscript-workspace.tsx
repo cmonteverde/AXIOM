@@ -278,6 +278,7 @@ const PAPER_TYPES = [
   { value: "qualitative", label: "Qualitative", description: "Interviews, focus groups, ethnography, phenomenology", icon: MessageSquare },
   { value: "systematic_review", label: "Systematic Review", description: "Meta-analysis, PRISMA, evidence synthesis", icon: Search },
   { value: "mixed_methods", label: "Mixed Methods", description: "Combined quantitative + qualitative designs", icon: Layers },
+  { value: "case_report", label: "Case Report / Case Series", description: "Clinical cases, CARE guideline, patient presentations", icon: ClipboardList },
   { value: "generic", label: "Generic Review", description: "Broad coverage for any manuscript type", icon: FileText },
 ];
 

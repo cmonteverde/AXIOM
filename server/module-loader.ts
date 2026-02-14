@@ -7,6 +7,7 @@ export type PaperType =
   | "qualitative"
   | "systematic_review"
   | "mixed_methods"
+  | "case_report"
   | "generic";
 
 export interface AutoDetectResult {
@@ -87,6 +88,18 @@ const KEYWORD_MAP: Record<PaperType, { primary: string[]; secondary: string[] }>
       "quan", "qual", "qualitative and quantitative"
     ]
   },
+  case_report: {
+    primary: [
+      "case report", "case study", "case presentation", "case series",
+      "clinical case", "case description", "patient presentation",
+      "care report", "clinical vignette", "clinical presentation"
+    ],
+    secondary: [
+      "chief complaint", "clinical findings", "diagnostic assessment",
+      "therapeutic intervention", "follow-up", "patient history",
+      "timeline", "care timeline", "clinical course"
+    ]
+  },
   generic: { primary: [], secondary: [] }
 };
 
@@ -96,6 +109,7 @@ const MODULE_FILE_MAP: Record<PaperType, string[]> = {
   qualitative: ["00_SAGE_CORE_INSTRUCTIONS.md", "03_MODULE_QUALITATIVE.md"],
   systematic_review: ["00_SAGE_CORE_INSTRUCTIONS.md", "04_MODULE_SYSTEMATIC_REVIEW.md"],
   mixed_methods: ["00_SAGE_CORE_INSTRUCTIONS.md", "05_MODULE_MIXED_METHODS.md"],
+  case_report: ["00_SAGE_CORE_INSTRUCTIONS.md", "07_MODULE_CASE_REPORT.md"],
   generic: ["00_SAGE_CORE_INSTRUCTIONS.md", "06_MODULE_GENERIC.md"],
 };
 
@@ -105,6 +119,7 @@ const PAPER_TYPE_LABELS: Record<PaperType, string> = {
   qualitative: "Qualitative",
   systematic_review: "Systematic Review",
   mixed_methods: "Mixed Methods",
+  case_report: "Case Report / Case Series",
   generic: "Generic Review",
 };
 
