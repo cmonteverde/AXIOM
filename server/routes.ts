@@ -7,6 +7,17 @@ import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_inte
 import OpenAI from "openai";
 import { buildAxiomSystemPrompt, LEARN_LINK_URLS } from "./axiom-prompt";
 import { autoDetectPaperType, loadModulesForType, loadWritingWorkflow, loadPaperTypesExplained, getPaperTypeLabel, type PaperType } from "./module-loader";
+import { rateLimit } from "./rate-limit";
+
+// General API rate limit: 100 requests per minute per user
+const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
+
+// Strict rate limit for expensive AI analysis: 5 requests per minute per user
+const analyzeLimiter = rateLimit({
+  windowMs: 60_000,
+  maxRequests: 5,
+  message: "Analysis rate limit exceeded. Please wait before running another analysis.",
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,20 +27,24 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerObjectStorageRoutes(app);
 
+  // Apply general rate limiting to all /api routes
+  app.use("/api", apiLimiter);
+
   app.post("/api/users/profile", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const parsed = profileSetupSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.message });
+        return res.status(400).json({ message: "Invalid profile data" });
       }
       const user = await storage.updateUserProfile(userId, parsed.data);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       return res.json(user);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return res.status(500).json({ message: "Failed to update profile" });
     }
   });
 
@@ -41,8 +56,9 @@ export async function registerRoutes(
         return res.status(404).json({ message: "User not found" });
       }
       return res.json(user);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
@@ -51,8 +67,9 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       await storage.deleteUser(userId);
       return res.json({ success: true });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return res.status(500).json({ message: "Failed to delete user" });
     }
   });
 
@@ -61,8 +78,9 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const manuscriptList = await storage.getManuscriptsByUserId(userId);
       return res.json(manuscriptList);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error fetching manuscripts:", error);
+      return res.status(500).json({ message: "Failed to fetch manuscripts" });
     }
   });
 
@@ -80,8 +98,9 @@ export async function registerRoutes(
         manuscript = (await storage.updateManuscriptAnalysis(manuscript.id, null, "none")) || manuscript;
       }
       return res.json(manuscript);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error fetching manuscript:", error);
+      return res.status(500).json({ message: "Failed to fetch manuscript" });
     }
   });
 
@@ -90,12 +109,13 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const parsed = insertManuscriptSchema.safeParse({ ...req.body, userId });
       if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.message });
+        return res.status(400).json({ message: "Invalid manuscript data" });
       }
       const manuscript = await storage.createManuscript(parsed.data);
       return res.json(manuscript);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error creating manuscript:", error);
+      return res.status(500).json({ message: "Failed to create manuscript" });
     }
   });
 
@@ -108,8 +128,9 @@ export async function registerRoutes(
       }
       await storage.deleteManuscript(manuscript.id);
       return res.json({ success: true });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error deleting manuscript:", error);
+      return res.status(500).json({ message: "Failed to delete manuscript" });
     }
   });
 
@@ -156,17 +177,18 @@ export async function registerRoutes(
         const previewText = extractedText.slice(0, 500).trim();
         await storage.updateManuscriptExtraction(manuscript.id, previewText, "completed", extractedText);
         return res.json({ status: "completed", previewText });
-      } catch (extractError: any) {
+      } catch (extractError) {
         console.error("Extraction error:", extractError);
         await storage.updateManuscriptExtraction(manuscript.id, "", "failed");
-        return res.json({ status: "failed", error: extractError.message });
+        return res.status(500).json({ status: "failed", message: "Failed to extract text from file" });
       }
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error in extraction endpoint:", error);
+      return res.status(500).json({ message: "Failed to process extraction request" });
     }
   });
 
-  app.post("/api/manuscripts/:id/analyze", isAuthenticated, async (req: any, res) => {
+  app.post("/api/manuscripts/:id/analyze", isAuthenticated, analyzeLimiter, async (req: any, res) => {
     try {
       const manuscript = await storage.getManuscript(req.params.id);
       if (!manuscript) {
@@ -266,12 +288,12 @@ export async function registerRoutes(
       await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
 
       return res.json({ status: "completed", analysis: analysisJson });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Analysis error:", error);
       try {
         await storage.updateManuscriptAnalysis(req.params.id, null, "failed");
       } catch {}
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: "Analysis failed. Please try again." });
     }
   });
 
@@ -292,8 +314,9 @@ export async function registerRoutes(
       }
       const updated = await storage.updateManuscriptPaperType(manuscript.id, paperType);
       return res.json(updated);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error updating paper type:", error);
+      return res.status(500).json({ message: "Failed to update paper type" });
     }
   });
 
@@ -313,8 +336,9 @@ export async function registerRoutes(
       }
       const result = autoDetectPaperType(text);
       return res.json(result);
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error detecting paper type:", error);
+      return res.status(500).json({ message: "Failed to detect paper type" });
     }
   });
 
@@ -322,8 +346,9 @@ export async function registerRoutes(
     try {
       const content = loadPaperTypesExplained();
       return res.json({ content });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error loading paper types:", error);
+      return res.status(500).json({ message: "Failed to load paper types" });
     }
   });
 
@@ -331,8 +356,9 @@ export async function registerRoutes(
     try {
       const content = loadWritingWorkflow();
       return res.json({ content });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error loading writing workflow:", error);
+      return res.status(500).json({ message: "Failed to load writing workflow" });
     }
   });
 
@@ -355,8 +381,9 @@ export async function registerRoutes(
       const previewText = text.slice(0, 500).trim();
       await storage.updateManuscriptExtraction(manuscript.id, previewText, "completed", text);
       return res.json({ status: "completed", previewText });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      console.error("Error pasting text:", error);
+      return res.status(500).json({ message: "Failed to save pasted text" });
     }
   });
 

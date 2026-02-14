@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isAuthenticated } from "../auth";
+import { storage } from "../../storage";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_TYPES = [
@@ -51,9 +52,21 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 
-  app.get("/objects/{*objectPath}", isAuthenticated, async (req, res) => {
+  app.get("/objects/{*objectPath}", isAuthenticated, async (req: any, res) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      // Verify the requesting user owns a manuscript with this fileKey
+      const userId = req.user.claims.sub;
+      const objectPath = req.path;
+      const userManuscripts = await storage.getManuscriptsByUserId(userId);
+      const ownsFile = userManuscripts.some(
+        (m) => m.fileKey === objectPath
+      );
+
+      if (!ownsFile) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);
