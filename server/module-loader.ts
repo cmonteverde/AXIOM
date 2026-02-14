@@ -184,7 +184,7 @@ export function autoDetectPaperType(text: string): AutoDetectResult {
 }
 
 export function loadModulesForType(paperType: PaperType): { files: string[]; content: string } {
-  const knowledgeBasePath = path.join(__dirname, "knowledge-base");
+  const knowledgeBasePath = path.join(process.cwd(), "server", "knowledge-base");
   const fileNames = MODULE_FILE_MAP[paperType] || MODULE_FILE_MAP.generic;
 
   const parts: string[] = [];
@@ -205,7 +205,7 @@ export function loadModulesForType(paperType: PaperType): { files: string[]; con
 }
 
 export function loadWritingWorkflow(): string {
-  const filePath = path.join(__dirname, "knowledge-base", "SAGE_WRITING_WORKFLOW.md");
+  const filePath = path.join(process.cwd(), "server", "knowledge-base", "SAGE_WRITING_WORKFLOW.md");
   try {
     return fs.readFileSync(filePath, "utf-8");
   } catch (err) {
@@ -215,7 +215,7 @@ export function loadWritingWorkflow(): string {
 }
 
 export function loadPaperTypesExplained(): string {
-  const filePath = path.join(__dirname, "knowledge-base", "SAGE_PAPER_TYPES_EXPLAINED.md");
+  const filePath = path.join(process.cwd(), "server", "knowledge-base", "SAGE_PAPER_TYPES_EXPLAINED.md");
   try {
     return fs.readFileSync(filePath, "utf-8");
   } catch (err) {
