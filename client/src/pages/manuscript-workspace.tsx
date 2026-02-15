@@ -1051,9 +1051,9 @@ export default function ManuscriptWorkspace() {
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-[95%] mx-auto">
           <Skeleton className="h-10 w-48 mb-4" />
-          <div className="flex gap-4">
-            <Skeleton className="h-[80vh] w-[60%]" />
-            <Skeleton className="h-[80vh] w-[40%]" />
+          <div className="flex flex-col lg:flex-row gap-4">
+            <Skeleton className="h-[50vh] lg:h-[80vh] w-full lg:w-[60%]" />
+            <Skeleton className="h-[50vh] lg:h-[80vh] w-full lg:w-[40%]" />
           </div>
         </div>
       </div>
@@ -1134,8 +1134,8 @@ export default function ManuscriptWorkspace() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b bg-background sticky top-0 z-50">
-        <div className="max-w-[95%] mx-auto flex items-center justify-between gap-4 py-3 px-4 flex-wrap">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="max-w-[95%] mx-auto flex items-center justify-between gap-2 sm:gap-4 py-2 sm:py-3 px-3 sm:px-4 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => navigate("/dashboard")}
               className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -1144,13 +1144,13 @@ export default function ManuscriptWorkspace() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold truncate" data-testid="text-manuscript-title">
+              <h1 className="text-base sm:text-lg font-bold truncate" data-testid="text-manuscript-title">
                 {manuscript.title || "Untitled Manuscript"}
               </h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <StageSelector manuscriptId={manuscript.id} currentStage={manuscript.stage || "draft"} />
                 {manuscript.fileName && (
-                  <span className="text-xs text-muted-foreground">{manuscript.fileName}</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">{manuscript.fileName}</span>
                 )}
                 {manuscript.paperType && manuscript.paperType !== "generic" && (
                   <Badge variant="outline" className="text-xs" data-testid="badge-paper-type">
@@ -1160,16 +1160,17 @@ export default function ManuscriptWorkspace() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {manuscriptText && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowUpdateTextDialog(true)}
                 data-testid="button-update-text"
+                className="px-2 sm:px-3"
               >
-                <Upload className="w-4 h-4 mr-2" />
-                Update Text
+                <Upload className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Update Text</span>
               </Button>
             )}
             {hasAnalysis && (
@@ -1178,9 +1179,10 @@ export default function ManuscriptWorkspace() {
                 size="sm"
                 onClick={handleExportReport}
                 data-testid="button-export-report"
+                className="px-2 sm:px-3"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Export
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             )}
             <Button
@@ -1192,18 +1194,20 @@ export default function ManuscriptWorkspace() {
             >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing...
+                  <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
+                  <span className="hidden sm:inline">Analyzing...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : hasAnalysis ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Re-analyze
+                  <RefreshCw className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Re-analyze</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Run AXIOM Audit
+                  <Sparkles className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Run AXIOM Audit</span>
+                  <span className="sm:hidden">Audit</span>
                 </>
               )}
             </Button>
@@ -1228,11 +1232,11 @@ export default function ManuscriptWorkspace() {
         manuscriptId={manuscript.id}
       />
 
-      <div className="max-w-[95%] mx-auto p-4">
-        <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
+      <div className="max-w-[95%] mx-auto p-2 sm:p-4">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
           <div className="w-full lg:w-[60%]">
             <Card className="h-full flex flex-col">
-              <div className="p-4 border-b flex items-center gap-2 flex-wrap">
+              <div className="p-3 sm:p-4 border-b flex items-center gap-2 flex-wrap">
                 <BookOpen className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold">Manuscript Content</h2>
                 {highlightText && (
@@ -1259,7 +1263,7 @@ export default function ManuscriptWorkspace() {
                   </Badge>
                 )}
               </div>
-              <ScrollArea className="flex-1 p-4" style={{ height: "calc(100vh - 180px)" }}>
+              <ScrollArea className="flex-1 p-3 sm:p-4 h-[50vh] lg:h-[calc(100vh-180px)]">
                 {manuscriptText ? (
                   <div ref={manuscriptContentRef} className="whitespace-pre-wrap text-sm leading-relaxed font-mono" data-testid="text-manuscript-content">
                     {highlightText ? (() => {
@@ -1341,24 +1345,24 @@ export default function ManuscriptWorkspace() {
             ) : (
               <Card className="h-full flex flex-col">
                 <Tabs defaultValue="overview" className="flex flex-col h-full">
-                  <div className="p-3 border-b">
+                  <div className="p-2 sm:p-3 border-b">
                     <TabsList className="w-full">
-                      <TabsTrigger value="overview" className="flex-1 text-xs" data-testid="tab-overview">
+                      <TabsTrigger value="overview" className="flex-1 text-[11px] sm:text-xs px-1 sm:px-3" data-testid="tab-overview">
                         Overview
                       </TabsTrigger>
-                      <TabsTrigger value="feedback" className="flex-1 text-xs" data-testid="tab-feedback">
+                      <TabsTrigger value="feedback" className="flex-1 text-[11px] sm:text-xs px-1 sm:px-3" data-testid="tab-feedback">
                         Feedback ({detailedFeedback.length})
                       </TabsTrigger>
-                      <TabsTrigger value="actions" className="flex-1 text-xs" data-testid="tab-actions">
+                      <TabsTrigger value="actions" className="flex-1 text-[11px] sm:text-xs px-1 sm:px-3" data-testid="tab-actions">
                         Actions ({actionItems.length})
                       </TabsTrigger>
-                      <TabsTrigger value="learn" className="flex-1 text-xs" data-testid="tab-learn">
+                      <TabsTrigger value="learn" className="flex-1 text-[11px] sm:text-xs px-1 sm:px-3" data-testid="tab-learn">
                         Learn
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
-                  <ScrollArea className="flex-1" style={{ height: "calc(100vh - 230px)" }}>
+                  <ScrollArea className="flex-1 h-[50vh] lg:h-[calc(100vh-230px)]">
                     <TabsContent value="overview" className="p-4 mt-0">
                       <div className="space-y-6">
                         <AuditGuidePanel />
