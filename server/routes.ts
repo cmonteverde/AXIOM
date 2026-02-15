@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { insertManuscriptSchema, profileSetupSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
@@ -736,6 +737,78 @@ ${truncatedText}` },
     } catch (error) {
       console.error("Citation extraction error:", error);
       return res.status(500).json({ message: "Failed to extract citations" });
+    }
+  });
+
+  // Generate a share link for a manuscript's audit report
+  app.post("/api/manuscripts/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first before sharing." });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      await storage.updateManuscriptShareToken(req.params.id, token);
+      return res.json({ shareToken: token });
+    } catch (error) {
+      console.error("Share link error:", error);
+      return res.status(500).json({ message: "Failed to generate share link" });
+    }
+  });
+
+  // Revoke a share link
+  app.delete("/api/manuscripts/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      await storage.updateManuscriptShareToken(req.params.id, null);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Revoke share error:", error);
+      return res.status(500).json({ message: "Failed to revoke share link" });
+    }
+  });
+
+  // View a shared report (public, no auth required)
+  app.get("/api/shared/:token", async (req, res) => {
+    try {
+      const manuscript = await storage.getManuscriptByShareToken(req.params.token);
+      if (!manuscript || !manuscript.shareToken) {
+        return res.status(404).json({ message: "Shared report not found" });
+      }
+
+      // Return only the audit data, not the full manuscript text
+      const analysis = manuscript.analysisJson as any;
+      return res.json({
+        title: manuscript.title || manuscript.fileName || "Untitled",
+        paperType: manuscript.paperType,
+        readinessScore: manuscript.readinessScore,
+        analysisStatus: manuscript.analysisStatus,
+        analysis: analysis ? {
+          readinessScore: analysis.readinessScore,
+          executiveSummary: analysis.executiveSummary || analysis.summary,
+          scoreBreakdown: analysis.scoreBreakdown,
+          criticalIssues: analysis.criticalIssues,
+          detailedFeedback: analysis.detailedFeedback,
+          actionItems: analysis.actionItems,
+          strengthsToMaintain: analysis.strengthsToMaintain,
+          paperTypeLabel: analysis.paperTypeLabel,
+          documentClassification: analysis.documentClassification,
+        } : null,
+        createdAt: manuscript.createdAt,
+      });
+    } catch (error) {
+      console.error("Shared report error:", error);
+      return res.status(500).json({ message: "Failed to load shared report" });
     }
   });
 

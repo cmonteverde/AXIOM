@@ -20,6 +20,8 @@ export interface IStorage {
   deleteManuscriptsByUserId(userId: string): Promise<void>;
   addAuditHistory(entry: { manuscriptId: string; readinessScore: number; paperType?: string; helpTypes?: string[]; summary?: string; criticalIssueCount: number; feedbackCount: number; actionItemCount: number; scoreBreakdown?: any }): Promise<AuditHistoryEntry>;
   getAuditHistory(manuscriptId: string): Promise<AuditHistoryEntry[]>;
+  updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined>;
+  getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -139,6 +141,16 @@ export class DatabaseStorage implements IStorage {
 
   async getAuditHistory(manuscriptId: string): Promise<AuditHistoryEntry[]> {
     return db.select().from(auditHistory).where(eq(auditHistory.manuscriptId, manuscriptId)).orderBy(desc(auditHistory.createdAt));
+  }
+
+  async updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.update(manuscripts).set({ shareToken }).where(eq(manuscripts.id, id)).returning();
+    return manuscript;
+  }
+
+  async getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.select().from(manuscripts).where(eq(manuscripts.shareToken, shareToken));
+    return manuscript;
   }
 }
 

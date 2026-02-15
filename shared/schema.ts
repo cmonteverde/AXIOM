@@ -23,6 +23,7 @@ export const manuscripts = pgTable("manuscripts", {
   analysisStatus: text("analysis_status").default("none"),
   analysisModules: text("analysis_modules").array().default(sql`'{}'::text[]`),
   readinessScore: integer("readiness_score"),
+  shareToken: varchar("share_token", { length: 64 }),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -48,6 +49,7 @@ export const auditHistory = pgTable("audit_history", {
 export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   id: true,
   readinessScore: true,
+  shareToken: true,
   status: true,
   createdAt: true,
   fullText: true,

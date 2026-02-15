@@ -63,6 +63,9 @@ import {
   Send,
   Link2,
   Quote,
+  Share2,
+  Copy,
+  LinkIcon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -1634,6 +1637,9 @@ export default function ManuscriptWorkspace() {
   };
 
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(manuscript?.shareToken || null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -1642,6 +1648,48 @@ export default function ManuscriptWorkspace() {
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [showExportMenu]);
+
+  // Sync shareToken from manuscript when it loads
+  useEffect(() => {
+    if (manuscript?.shareToken) setShareToken(manuscript.shareToken);
+  }, [manuscript?.shareToken]);
+
+  const handleGenerateShareLink = async () => {
+    if (!manuscript) return;
+    setIsGeneratingLink(true);
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscript.id}/share`);
+      const data = await res.json();
+      setShareToken(data.shareToken);
+      toast({ title: "Share Link Created", description: "Anyone with the link can view your audit report." });
+    } catch {
+      toast({ title: "Error", description: "Failed to generate share link", variant: "destructive" });
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRevokeShareLink = async () => {
+    if (!manuscript) return;
+    try {
+      await apiRequest("DELETE", `/api/manuscripts/${manuscript.id}/share`);
+      setShareToken(null);
+      toast({ title: "Link Revoked", description: "The share link has been disabled." });
+    } catch {
+      toast({ title: "Error", description: "Failed to revoke share link", variant: "destructive" });
+    }
+  };
+
+  const getShareUrl = () => {
+    if (!shareToken) return "";
+    return `${window.location.origin}/shared/${shareToken}`;
+  };
+
+  const copyShareLink = () => {
+    const url = getShareUrl();
+    navigator.clipboard.writeText(url);
+    toast({ title: "Copied!", description: "Share link copied to clipboard." });
+  };
 
   const detailedFeedback = analysis?.detailedFeedback || [];
   const actionItems = analysis?.actionItems || [];
@@ -1762,6 +1810,18 @@ export default function ManuscriptWorkspace() {
                 )}
               </div>
             )}
+            {hasAnalysis && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowShareDialog(true)}
+                data-testid="button-share-report"
+                className="px-2 sm:px-3"
+              >
+                <Share2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            )}
             <Button
               variant={hasAnalysis ? "outline" : "default"}
               size="sm"
@@ -1808,6 +1868,62 @@ export default function ManuscriptWorkspace() {
         onOpenChange={setShowUpdateTextDialog}
         manuscriptId={manuscript.id}
       />
+
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" />
+              Share Audit Report
+            </DialogTitle>
+            <DialogDescription>
+              Generate a public link to share your audit results. Only the audit analysis is shared — your full manuscript text stays private.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {shareToken ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-muted rounded-md px-3 py-2 text-xs font-mono break-all">
+                    {getShareUrl()}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={copyShareLink} className="shrink-0">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <LinkIcon className="w-3 h-3" />
+                    Link is active
+                  </p>
+                  <Button size="sm" variant="destructive" onClick={handleRevokeShareLink}>
+                    Revoke Link
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  No share link exists yet. Create one to let others view your audit report.
+                </p>
+                <Button onClick={handleGenerateShareLink} disabled={isGeneratingLink}>
+                  {isGeneratingLink ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-4 h-4 mr-2" />
+                      Generate Share Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AuditChatPanel manuscriptId={manuscript.id} hasAnalysis={!!hasAnalysis} />
 

@@ -11,6 +11,7 @@ import ProfileSetup from "@/pages/profile-setup";
 import Dashboard from "@/pages/dashboard";
 import NewManuscript from "@/pages/new-manuscript";
 import ManuscriptWorkspace from "@/pages/manuscript-workspace";
+import SharedReport from "@/pages/shared-report";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/manuscript/new" component={NewManuscript} />
       <Route path="/manuscript/:id" component={ManuscriptWorkspace} />
+      <Route path="/shared/:token" component={SharedReport} />
       <Route component={NotFound} />
     </Switch>
   );
