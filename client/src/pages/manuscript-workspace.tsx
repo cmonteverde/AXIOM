@@ -770,6 +770,120 @@ function generateExportMarkdown(analysis: AnalysisData, manuscript: Manuscript, 
   return lines.join("\n");
 }
 
+function generateExportHTML(analysis: AnalysisData, manuscript: Manuscript, checkedItems: Set<number>): string {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const score = analysis.readinessScore ?? 0;
+  const scoreColor = score >= 75 ? "#16a34a" : score >= 50 ? "#ca8a04" : "#dc2626";
+
+  const feedbackBySection: Record<string, typeof analysis.detailedFeedback> = {};
+  for (const fb of (analysis.detailedFeedback || [])) {
+    const sec = fb.section || "General";
+    if (!feedbackBySection[sec]) feedbackBySection[sec] = [];
+    feedbackBySection[sec].push(fb);
+  }
+
+  const severityColor = (s: string) => {
+    if (s === "critical") return "#dc2626";
+    if (s === "important") return "#ca8a04";
+    return "#6b7280";
+  };
+  const priorityColor = (p: string) => {
+    if (p === "high") return "#dc2626";
+    if (p === "medium") return "#ca8a04";
+    return "#6b7280";
+  };
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>AXIOM Audit Report — ${esc(manuscript.title || "Untitled")}</title>
+<style>
+  @page { margin: 0.75in; size: letter; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a1a; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px; font-size: 11pt; }
+  h1 { font-size: 20pt; margin: 0 0 4px; color: #111; }
+  h2 { font-size: 14pt; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #e5e7eb; color: #111; }
+  h3 { font-size: 12pt; margin: 16px 0 6px; color: #374151; }
+  .meta { color: #6b7280; font-size: 10pt; margin-bottom: 20px; }
+  .meta span { margin-right: 16px; }
+  .score-ring { display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 50%; border: 6px solid ${scoreColor}; font-size: 22pt; font-weight: 700; color: ${scoreColor}; margin-right: 16px; }
+  .score-section { display: flex; align-items: center; margin: 16px 0 20px; }
+  .score-label { font-size: 10pt; color: #6b7280; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 8pt; font-weight: 600; text-transform: uppercase; color: white; margin-right: 4px; }
+  .summary { background: #f9fafb; border-left: 3px solid #6366f1; padding: 12px 16px; margin: 12px 0; font-size: 10pt; border-radius: 0 4px 4px 0; }
+  .feedback-card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; margin: 8px 0; page-break-inside: avoid; }
+  .feedback-card .finding { font-size: 10pt; margin: 4px 0; }
+  .feedback-card .suggestion { font-size: 9pt; color: #4b5563; background: #f3f4f6; padding: 6px 10px; border-radius: 4px; margin-top: 6px; }
+  .action-item { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; font-size: 10pt; }
+  .action-item .checkbox { width: 14px; height: 14px; border: 2px solid #d1d5db; border-radius: 3px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .action-item .checkbox.checked { background: #6366f1; border-color: #6366f1; color: white; }
+  .breakdown-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 10pt; }
+  .breakdown-bar { height: 6px; border-radius: 3px; background: #e5e7eb; flex: 1; margin: 0 12px; max-width: 200px; }
+  .breakdown-bar-fill { height: 100%; border-radius: 3px; background: #6366f1; }
+  .strength { font-size: 10pt; padding: 4px 0; }
+  .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 9pt; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+<h1>AXIOM Audit Report</h1>
+<div class="meta">
+  <span><strong>${esc(manuscript.title || "Untitled Manuscript")}</strong></span><br>
+  <span>Date: ${new Date().toLocaleDateString()}</span>
+  <span>Stage: ${esc(manuscript.stage || "draft")}</span>
+  ${analysis.paperTypeLabel ? `<span>Type: ${esc(analysis.paperTypeLabel)}</span>` : ""}
+</div>
+
+<div class="score-section">
+  <div class="score-ring">${score}</div>
+  <div>
+    <div style="font-size:14pt;font-weight:700;color:${scoreColor}">${score >= 75 ? "Submission Ready" : score >= 50 ? "Revisions Needed" : "Major Work Needed"}</div>
+    <div class="score-label">Readiness Score out of 100</div>
+  </div>
+</div>
+
+${(analysis.executiveSummary || analysis.summary) ? `<div class="summary">${esc(analysis.executiveSummary || analysis.summary || "")}</div>` : ""}
+
+${analysis.scoreBreakdown ? `<h2>Score Breakdown</h2>
+${[
+  ["Title & Keywords", analysis.scoreBreakdown.titleAndKeywords],
+  ["Abstract", analysis.scoreBreakdown.abstract],
+  ["Introduction", analysis.scoreBreakdown.introduction],
+  ["Methods", analysis.scoreBreakdown.methods],
+  ["Results", analysis.scoreBreakdown.results],
+  ["Discussion", analysis.scoreBreakdown.discussion],
+  ["Ethics & Transparency", analysis.scoreBreakdown.ethicsAndTransparency],
+  ["Writing Quality", analysis.scoreBreakdown.writingQuality],
+  ["Zero-I Perspective", analysis.scoreBreakdown.zeroIPerspective],
+].filter(([, d]) => d).map(([label, data]: any) => `<div class="breakdown-row">
+  <span style="min-width:140px">${label}</span>
+  <div class="breakdown-bar"><div class="breakdown-bar-fill" style="width:${data.score}%"></div></div>
+  <span style="min-width:50px;text-align:right;font-weight:600">${data.score}/100</span>
+</div>`).join("")}` : ""}
+
+${(analysis.criticalIssues || []).length > 0 ? `<h2>Critical Issues (${analysis.criticalIssues!.length})</h2>
+${analysis.criticalIssues!.map(issue => `<div class="feedback-card" style="border-left:3px solid #dc2626">
+  <div><span class="badge" style="background:${severityColor(issue.severity)}">${esc(issue.severity)}</span> <strong>${esc(issue.title)}</strong></div>
+  <div class="finding">${esc(issue.description)}</div>
+  <div style="font-size:9pt;color:#6b7280;margin-top:4px"><em>UMA: ${esc(issue.umaReference)}</em></div>
+</div>`).join("")}` : ""}
+
+${Object.keys(feedbackBySection).length > 0 ? `<h2>Detailed Feedback (${(analysis.detailedFeedback || []).length} items)</h2>
+${Object.entries(feedbackBySection).map(([section, items]) => `<h3>${esc(section)}</h3>
+${items!.map(fb => `<div class="feedback-card">
+  <div><span class="badge" style="background:${severityColor(fb.severity || "minor")}">${esc(fb.severity || "minor")}</span> ${esc(fb.finding)}</div>
+  <div class="suggestion"><strong>Fix:</strong> ${esc(fb.suggestion)}</div>
+</div>`).join("")}`).join("")}` : ""}
+
+${(analysis.actionItems || []).length > 0 ? `<h2>Action Items (${checkedItems.size}/${analysis.actionItems!.length} completed)</h2>
+${analysis.actionItems!.map((item, i) => `<div class="action-item">
+  <div class="checkbox ${checkedItems.has(i) ? "checked" : ""}">${checkedItems.has(i) ? "✓" : ""}</div>
+  <div><span class="badge" style="background:${priorityColor(item.priority)}">${esc(item.priority)}</span> ${esc(item.task)}${item.section ? ` <em style="color:#6b7280">(${esc(item.section)})</em>` : ""}</div>
+</div>`).join("")}` : ""}
+
+${(analysis.strengthsToMaintain || []).length > 0 ? `<h2>Strengths to Maintain</h2>
+${analysis.strengthsToMaintain!.map(s => `<div class="strength">✓ ${esc(s)}</div>`).join("")}` : ""}
+
+<div class="footer">Generated by AXIOM — Universal Manuscript Architecture Audit</div>
+</body></html>`;
+}
+
 const CATEGORY_TIPS: Record<string, string> = {
   titleAndKeywords: "Add 4-5 discipline-specific keywords (MeSH terms for biomedical). Keep title under 15 words with key finding.",
   abstract: "Follow the 5-Move structure: Hook, Gap, Approach, Findings (with numbers), Impact. Stay under 250 words.",
@@ -1080,7 +1194,7 @@ export default function ManuscriptWorkspace() {
   manuscriptTextRef.current = manuscriptText;
   const isReExtracting = extractMutation.isPending;
 
-  const handleExportReport = () => {
+  const handleExportMarkdown = () => {
     if (!analysis || !manuscript) return;
     const markdown = generateExportMarkdown(analysis, manuscript, checkedItems);
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
@@ -1094,6 +1208,32 @@ export default function ManuscriptWorkspace() {
     URL.revokeObjectURL(url);
     toast({ title: "Report Downloaded", description: "Your audit report has been saved as a Markdown file." });
   };
+
+  const handleExportPDF = () => {
+    if (!analysis || !manuscript) return;
+    const html = generateExportHTML(analysis, manuscript, checkedItems);
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({ title: "Popup Blocked", description: "Allow popups to export as PDF.", variant: "destructive" });
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      setTimeout(() => printWindow.print(), 300);
+    };
+    toast({ title: "PDF Ready", description: "Use Print > Save as PDF in the dialog." });
+  };
+
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handler = () => setShowExportMenu(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [showExportMenu]);
 
   const detailedFeedback = analysis?.detailedFeedback || [];
   const actionItems = analysis?.actionItems || [];
@@ -1174,16 +1314,38 @@ export default function ManuscriptWorkspace() {
               </Button>
             )}
             {hasAnalysis && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportReport}
-                data-testid="button-export-report"
-                className="px-2 sm:px-3"
-              >
-                <Download className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  data-testid="button-export-report"
+                  className="px-2 sm:px-3"
+                >
+                  <Download className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-md py-1 w-40 animate-in fade-in slide-in-from-top-1">
+                    <button
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                      onClick={() => { handleExportPDF(); setShowExportMenu(false); }}
+                      data-testid="button-export-pdf"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Export as PDF
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                      onClick={() => { handleExportMarkdown(); setShowExportMenu(false); }}
+                      data-testid="button-export-markdown"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Export as Markdown
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             <Button
               variant={hasAnalysis ? "outline" : "default"}
