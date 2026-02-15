@@ -1,6 +1,6 @@
 import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, type AuditHistoryEntry, users, manuscripts, auditHistory } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gt, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -22,6 +22,7 @@ export interface IStorage {
   getAuditHistory(manuscriptId: string): Promise<AuditHistoryEntry[]>;
   updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined>;
   getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined>;
+  getLeaderboard(limit?: number): Promise<{ id: string; firstName: string | null; lastName: string | null; profileImageUrl: string | null; primaryField: string | null; xp: number; level: number; streak: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -151,6 +152,19 @@ export class DatabaseStorage implements IStorage {
   async getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined> {
     const [manuscript] = await db.select().from(manuscripts).where(eq(manuscripts.shareToken, shareToken));
     return manuscript;
+  }
+
+  async getLeaderboard(limit = 10) {
+    return db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      primaryField: users.primaryField,
+      xp: users.xp,
+      level: users.level,
+      streak: users.streak,
+    }).from(users).where(gt(users.xp, 0)).orderBy(desc(users.xp)).limit(limit);
   }
 }
 

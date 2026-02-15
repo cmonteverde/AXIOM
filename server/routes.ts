@@ -358,6 +358,17 @@ export async function registerRoutes(
     }
   });
 
+  // Leaderboard: top users by XP
+  app.get("/api/leaderboard", isAuthenticated, async (_req: any, res) => {
+    try {
+      const leaders = await storage.getLeaderboard(10);
+      return res.json(leaders);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      return res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
   app.get("/api/manuscripts", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
