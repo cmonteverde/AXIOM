@@ -240,8 +240,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#dashboard-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium"
+      >
+        Skip to main content
+      </a>
       <OnboardingTour />
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border" aria-label="Dashboard navigation">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16">
           <div className="flex items-center" data-testid="text-dashboard-logo">
             <img src={axiomLogoPath} alt="AXIOM" className="w-10 h-10 object-contain" data-testid="img-logo" />
@@ -280,7 +286,7 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main id="dashboard-content" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-40 w-full rounded-md" />
@@ -288,14 +294,16 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <section className="mb-8">
+            <section className="mb-8" aria-label="Submission pipeline">
               <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-1" data-testid="text-dashboard-title">
                     Welcome back, {displayName}
                   </h1>
                   <p className="text-muted-foreground">
-                    Continue strengthening your scholarly writing.
+                    {analyzedCount === 0
+                      ? "Upload a manuscript to start your pre-submission audit."
+                      : `${analyzedCount} manuscript${analyzedCount !== 1 ? "s" : ""} audited — keep building toward submission.`}
                   </p>
                 </div>
                 <Button
@@ -306,6 +314,26 @@ export default function Dashboard() {
                   New Manuscript
                 </Button>
               </div>
+
+              {activeManuscripts.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  {[
+                    { label: "Uploaded", value: activeManuscripts.length, icon: Upload },
+                    { label: "Audited", value: analyzedCount, icon: FileText },
+                    { label: "Avg Score", value: (() => {
+                      const scored = manuscripts.filter(m => m.readinessScore !== null);
+                      return scored.length > 0 ? Math.round(scored.reduce((sum, m) => sum + (m.readinessScore ?? 0), 0) / scored.length) + "%" : "—";
+                    })(), icon: BarChart3 },
+                    { label: "Ready", value: manuscripts.filter(m => (m.readinessScore ?? 0) >= 75).length, icon: Target },
+                  ].map((stat) => (
+                    <Card key={stat.label} className="p-3 text-center">
+                      <stat.icon className="w-4 h-4 text-primary mx-auto mb-1" />
+                      <p className="text-lg font-bold">{stat.value}</p>
+                      <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <Card className="lg:col-span-2 p-6">
@@ -322,7 +350,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="w-full h-3 bg-muted rounded-full mb-6 overflow-hidden">
+                  <div className="w-full h-3 bg-muted rounded-full mb-6 overflow-hidden" role="progressbar" aria-valuenow={xp} aria-valuemin={0} aria-valuemax={nextLevelXp} aria-label={`${xp} of ${nextLevelXp} XP to next level`}>
                     <div
                       className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
                       style={{ width: `${progressPct}%` }}
@@ -832,7 +860,7 @@ export default function Dashboard() {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

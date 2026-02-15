@@ -18,15 +18,15 @@
   --sidebar: 228 20% 95%;
   --sidebar-foreground: 240 45% 15%;
   --sidebar-border: 228 15% 88%;
-  --sidebar-primary: 248 58% 38%;
+  --sidebar-primary: 173 65% 30%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 228 18% 91%;
   --sidebar-accent-foreground: 240 45% 15%;
-  --sidebar-ring: 248 58% 38%;
+  --sidebar-ring: 173 65% 30%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 45% 15%;
   --popover-border: 228 15% 89%;
-  --primary: 248 58% 38%;
+  --primary: 173 65% 30%;
   --primary-foreground: 0 0% 100%;
   --secondary: 228 18% 93%;
   --secondary-foreground: 240 45% 15%;
@@ -37,10 +37,10 @@
   --destructive: 0 72% 50%;
   --destructive-foreground: 0 0% 100%;
   --input: 228 15% 86%;
-  --ring: 248 58% 38%;
-  --chart-1: 248 58% 38%;
+  --ring: 173 65% 30%;
+  --chart-1: 173 65% 30%;
   --chart-2: 200 70% 48%;
-  --chart-3: 268 55% 45%;
+  --chart-3: 38 80% 50%;
   --chart-4: 152 55% 42%;
   --chart-5: 338 65% 50%;
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
@@ -102,15 +102,15 @@
   --sidebar: 232 16% 10%;
   --sidebar-foreground: 220 18% 92%;
   --sidebar-border: 232 12% 16%;
-  --sidebar-primary: 248 55% 58%;
+  --sidebar-primary: 173 55% 50%;
   --sidebar-primary-foreground: 0 0% 98%;
   --sidebar-accent: 232 14% 17%;
   --sidebar-accent-foreground: 220 18% 92%;
-  --sidebar-ring: 248 55% 58%;
+  --sidebar-ring: 173 55% 50%;
   --popover: 232 14% 13%;
   --popover-foreground: 220 18% 92%;
   --popover-border: 232 12% 18%;
-  --primary: 248 55% 58%;
+  --primary: 173 55% 50%;
   --primary-foreground: 0 0% 98%;
   --secondary: 232 12% 18%;
   --secondary-foreground: 220 18% 92%;
@@ -121,10 +121,10 @@
   --destructive: 0 72% 48%;
   --destructive-foreground: 0 0% 98%;
   --input: 232 12% 24%;
-  --ring: 248 55% 58%;
-  --chart-1: 248 55% 65%;
+  --ring: 173 55% 50%;
+  --chart-1: 173 55% 55%;
   --chart-2: 200 60% 62%;
-  --chart-3: 268 45% 62%;
+  --chart-3: 38 70% 55%;
   --chart-4: 152 35% 60%;
   --chart-5: 338 55% 60%;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
@@ -297,4 +297,25 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+}
+
+/* Reduced motion: pause all non-essential animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-spin {
+    animation-play-state: paused !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
