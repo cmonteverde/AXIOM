@@ -55,6 +55,10 @@ import {
   Lightbulb,
   Sun,
   Moon,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -946,6 +950,84 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
   );
 }
 
+interface AuditHistoryEntry {
+  id: string;
+  readinessScore: number;
+  criticalIssueCount: number;
+  feedbackCount: number;
+  actionItemCount: number;
+  createdAt: string;
+}
+
+function AuditScoreTrend({ manuscriptId }: { manuscriptId: string }) {
+  const { data: history = [] } = useQuery<AuditHistoryEntry[]>({
+    queryKey: ["/api/manuscripts", manuscriptId, "history"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/manuscripts/${manuscriptId}/history`);
+      return res.json();
+    },
+  });
+
+  if (history.length < 2) return null;
+
+  const sorted = [...history].reverse(); // oldest first
+  const latest = sorted[sorted.length - 1];
+  const previous = sorted[sorted.length - 2];
+  const delta = latest.readinessScore - previous.readinessScore;
+  const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+  const deltaColor = delta > 0 ? "text-green-600" : delta < 0 ? "text-red-500" : "text-muted-foreground";
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <History className="w-4 h-4 text-primary" />
+        Score History
+        <Badge variant="secondary" className="text-[10px]">{history.length} audits</Badge>
+      </h3>
+      <Card className="p-3">
+        <div className="flex items-center gap-3 mb-3">
+          <DeltaIcon className={`w-5 h-5 ${deltaColor}`} />
+          <span className={`text-lg font-bold ${deltaColor}`}>
+            {delta > 0 ? "+" : ""}{delta} points
+          </span>
+          <span className="text-xs text-muted-foreground">vs previous audit</span>
+        </div>
+
+        <div className="flex items-end gap-1 h-16">
+          {sorted.map((entry, i) => {
+            const height = `${Math.max(8, entry.readinessScore)}%`;
+            const isLatest = i === sorted.length - 1;
+            return (
+              <Tooltip key={entry.id}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={`flex-1 rounded-t-sm transition-all cursor-help ${isLatest ? "bg-primary" : "bg-primary/30"}`}
+                    style={{ height }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <p className="font-semibold">{entry.readinessScore}/100</p>
+                  <p className="text-muted-foreground">
+                    {new Date(entry.createdAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entry.criticalIssueCount} critical, {entry.feedbackCount} feedback
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+          <span>{new Date(sorted[0].createdAt).toLocaleDateString()}</span>
+          <span>{new Date(sorted[sorted.length - 1].createdAt).toLocaleDateString()}</span>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function ManuscriptWorkspace() {
   const [, navigate] = useLocation();
   const [matched, params] = useRoute("/manuscript/:id");
@@ -1002,6 +1084,7 @@ export default function ManuscriptWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId, "history"] });
       // Reset UI state that references old analysis data
       setCheckedItems(new Set());
       setCheckedItemsLoaded(false);
@@ -1596,6 +1679,8 @@ export default function ManuscriptWorkspace() {
                             onClose={() => setShowScoreBreakdown(false)}
                           />
                         )}
+
+                        <AuditScoreTrend manuscriptId={manuscriptId!} />
 
                         {analysis.abstractAnalysis && (
                         <div>

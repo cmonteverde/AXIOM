@@ -532,6 +532,23 @@ ${truncatedText}` },
       const readinessScore = analysisJson.readinessScore ?? null;
       await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
 
+      // --- Audit History: save snapshot for version comparison ---
+      try {
+        await storage.addAuditHistory({
+          manuscriptId: manuscript.id,
+          readinessScore: readinessScore ?? 0,
+          paperType: paperType,
+          helpTypes: selectedHelpTypes,
+          summary: analysisJson.executiveSummary || analysisJson.summary || "",
+          criticalIssueCount: (analysisJson.criticalIssues || []).length,
+          feedbackCount: (analysisJson.detailedFeedback || []).length,
+          actionItemCount: (analysisJson.actionItems || []).length,
+          scoreBreakdown: analysisJson.scoreBreakdown || null,
+        });
+      } catch (histErr) {
+        console.error("Audit history save error:", histErr);
+      }
+
       // --- Gamification: award XP, update streak, check level-up ---
       try {
         const xpEarned = calculateAuditXP(textToAnalyze.length, selectedHelpTypes, readinessScore);
@@ -606,6 +623,22 @@ ${truncatedText}` },
     } catch (error) {
       console.error("Error detecting paper type:", error);
       return res.status(500).json({ message: "Failed to detect paper type" });
+    }
+  });
+
+  // Audit history endpoint
+  app.get("/api/manuscripts/:id/history", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const history = await storage.getAuditHistory(req.params.id);
+      return res.json(history);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+      return res.status(500).json({ message: "Failed to fetch audit history" });
     }
   });
 

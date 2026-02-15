@@ -29,6 +29,22 @@ export const manuscripts = pgTable("manuscripts", {
   index("idx_manuscripts_user_id").on(table.userId),
 ]);
 
+export const auditHistory = pgTable("audit_history", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  manuscriptId: varchar("manuscript_id", { length: 36 }).notNull().references(() => manuscripts.id, { onDelete: "cascade" }),
+  readinessScore: integer("readiness_score").notNull(),
+  paperType: text("paper_type"),
+  helpTypes: text("help_types").array().default(sql`'{}'::text[]`),
+  summary: text("summary"),
+  criticalIssueCount: integer("critical_issue_count").notNull().default(0),
+  feedbackCount: integer("feedback_count").notNull().default(0),
+  actionItemCount: integer("action_item_count").notNull().default(0),
+  scoreBreakdown: jsonb("score_breakdown"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_audit_history_manuscript_id").on(table.manuscriptId),
+]);
+
 export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
   id: true,
   readinessScore: true,
@@ -47,6 +63,7 @@ export const insertManuscriptSchema = createInsertSchema(manuscripts).omit({
 
 export type InsertManuscript = z.infer<typeof insertManuscriptSchema>;
 export type Manuscript = typeof manuscripts.$inferSelect;
+export type AuditHistoryEntry = typeof auditHistory.$inferSelect;
 
 export const profileSetupSchema = z.object({
   researchLevel: z.string().min(1),
