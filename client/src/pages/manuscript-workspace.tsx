@@ -69,6 +69,9 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { ReviewerResponseTable } from "@/components/reviewer-response-table";
+import { CoverLetterGenerator } from "@/components/cover-letter-generator";
+import { JournalSelector } from "@/components/journal-selector";
 import { useTheme } from "@/hooks/use-theme";
 
 /** Only allow http: and https: URLs to prevent javascript: / data: XSS */
@@ -1822,6 +1825,9 @@ export default function ManuscriptWorkspace() {
                 <span className="hidden sm:inline">Share</span>
               </Button>
             )}
+            <ReviewerResponseTable manuscriptId={manuscriptId!} hasAnalysis={!!hasAnalysis} />
+            <CoverLetterGenerator manuscriptId={manuscriptId!} hasAnalysis={!!hasAnalysis} />
+            <JournalSelector manuscriptId={manuscriptId!} hasAnalysis={!!hasAnalysis} />
             <Button
               variant={hasAnalysis ? "outline" : "default"}
               size="sm"

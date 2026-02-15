@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
 import {
+  Check,
   Flame,
   Trophy,
   FileText,
@@ -226,6 +227,16 @@ export default function Dashboard() {
   const displayName = user.firstName || user.email || "Researcher";
   const analyzedCount = manuscripts.filter(m => m.analysisStatus === "completed").length;
   const levelTitle = getLevelTitle(level);
+  const achievementsEarned = [
+    manuscripts.length > 0,
+    analyzedCount > 0,
+    streak >= 3,
+    level >= 5,
+    manuscripts.length >= 5,
+    analyzedCount >= 10,
+    streak >= 7,
+    xp >= 5000,
+  ].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -353,7 +364,7 @@ export default function Dashboard() {
                         <div className="text-center p-4 rounded-md bg-muted/50 cursor-help">
                           <div className="flex items-center justify-center gap-1.5 mb-1">
                             <Trophy className="w-5 h-5 text-chart-2" />
-                            <span className="text-2xl font-bold" data-testid="text-achievements">0</span>
+                            <span className="text-2xl font-bold" data-testid="text-achievements">{achievementsEarned}</span>
                           </div>
                           <p className="text-xs text-muted-foreground">Achievements</p>
                         </div>
@@ -370,20 +381,47 @@ export default function Dashboard() {
                     <Zap className="w-5 h-5 text-chart-3" />
                     <h2 className="text-base font-bold">Daily Challenge</h2>
                   </div>
-                  <div className="rounded-md bg-muted/50 p-4 mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-semibold">Citation Detective</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">Add 3 recent papers to strengthen your literature review.</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>20 min</span>
-                        <span className="font-medium text-primary">+250 XP</span>
+                  {(() => {
+                    const challenges = [
+                      { title: "Citation Detective", desc: "Run a citation analysis on your latest manuscript to check reference quality.", xp: 250, time: "10 min", action: "analyze-citations" },
+                      { title: "Audit Sprint", desc: "Upload and audit a new manuscript from start to finish.", xp: 400, time: "30 min", action: "new-manuscript" },
+                      { title: "Revision Tracker", desc: "Upload reviewer comments and draft point-by-point responses.", xp: 300, time: "20 min", action: "reviewer-response" },
+                      { title: "Cover Letter Pro", desc: "Generate a cover letter for your most recent audited manuscript.", xp: 200, time: "10 min", action: "cover-letter" },
+                      { title: "Journal Scout", desc: "Use the journal selection tool to find target journals for your paper.", xp: 200, time: "10 min", action: "journal-match" },
+                      { title: "Score Booster", desc: "Re-analyze a manuscript and try to improve your audit score.", xp: 350, time: "25 min", action: "re-analyze" },
+                      { title: "Action Item Hero", desc: "Complete 3 action items from your latest audit feedback.", xp: 250, time: "20 min", action: "action-items" },
+                    ];
+                    const dayIndex = Math.floor(Date.now() / 86400000) % challenges.length;
+                    const challenge = challenges[dayIndex];
+                    const latestManuscript = activeManuscripts[0];
+
+                    const handleAccept = () => {
+                      if (challenge.action === "new-manuscript") {
+                        navigate("/manuscript/new");
+                      } else if (latestManuscript) {
+                        navigate(`/manuscript/${latestManuscript.id}`);
+                      } else {
+                        navigate("/manuscript/new");
+                      }
+                    };
+
+                    return (
+                      <div className="rounded-md bg-muted/50 p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-4 h-4 text-primary" />
+                          <p className="text-sm font-semibold">{challenge.title}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">{challenge.desc}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>{challenge.time}</span>
+                            <span className="font-medium text-primary">+{challenge.xp} XP</span>
+                          </div>
+                          <Button size="sm" onClick={handleAccept} data-testid="button-accept-challenge">Accept</Button>
+                        </div>
                       </div>
-                      <Button size="sm" data-testid="button-accept-challenge">Accept</Button>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   <div className="space-y-3 pt-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">This Week</h3>
@@ -575,27 +613,44 @@ export default function Dashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
-                  { title: "First Audit", description: "Run your first AXIOM audit", icon: Sparkles, earned: analyzedCount > 0 },
-                  { title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
-                  { title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
-                ].map((achievement) => (
-                  <Card
-                    key={achievement.title}
-                    className={`p-4 ${achievement.earned ? "" : "opacity-50"}`}
-                    data-testid={`card-achievement-${achievement.title.toLowerCase().replace(/\s/g, "-")}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${achievement.earned ? "bg-primary/10" : "bg-muted"}`}>
-                        <achievement.icon className={`w-4.5 h-4.5 ${achievement.earned ? "text-primary" : "text-muted-foreground"}`} />
+                  { id: "first-upload", title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
+                  { id: "first-audit", title: "First Audit", description: "Run your first AXIOM audit", icon: Sparkles, earned: analyzedCount > 0 },
+                  { id: "streak-starter", title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
+                  { id: "scholar-rising", title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
+                  { id: "prolific-writer", title: "Prolific Writer", description: "Upload 5 manuscripts", icon: FileText, earned: manuscripts.length >= 5 },
+                  { id: "audit-master", title: "Audit Master", description: "Complete 10 audits", icon: Award, earned: analyzedCount >= 10 },
+                  { id: "week-warrior", title: "Week Warrior", description: "Maintain a 7-day streak", icon: Flame, earned: streak >= 7 },
+                  { id: "xp-milestone", title: "XP Milestone", description: "Earn 5,000 total XP", icon: Sparkles, earned: xp >= 5000 },
+                ].map((achievement) => {
+                  const persisted = (user.achievements as Array<{ id: string; unlockedAt: string }> || [])
+                    .find(a => a.id === achievement.id);
+                  const unlockedAt = persisted?.unlockedAt;
+                  return (
+                    <Card
+                      key={achievement.id}
+                      className={`p-4 ${achievement.earned ? "" : "opacity-50"}`}
+                      data-testid={`card-achievement-${achievement.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${achievement.earned ? "bg-primary/10" : "bg-muted"}`}>
+                          <achievement.icon className={`w-4.5 h-4.5 ${achievement.earned ? "text-primary" : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold">{achievement.title}</p>
+                            {achievement.earned && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                          {unlockedAt && (
+                            <p className="text-[10px] text-primary/70 mt-0.5">
+                              Unlocked {new Date(unlockedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold">{achievement.title}</p>
-                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             </section>
 
