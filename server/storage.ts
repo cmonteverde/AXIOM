@@ -1,4 +1,4 @@
-import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, type AuditHistoryEntry, users, manuscripts, auditHistory } from "@shared/schema";
+import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, type AuditHistoryEntry, type ReviewerComment, users, manuscripts, auditHistory, reviewerComments } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, gt, sql } from "drizzle-orm";
 
@@ -23,6 +23,10 @@ export interface IStorage {
   updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined>;
   getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined>;
   getLeaderboard(limit?: number): Promise<{ id: string; firstName: string | null; lastName: string | null; profileImageUrl: string | null; primaryField: string | null; xp: number; level: number; streak: number }[]>;
+  getReviewerComments(manuscriptId: string): Promise<ReviewerComment[]>;
+  addReviewerComments(manuscriptId: string, comments: string[]): Promise<ReviewerComment[]>;
+  updateReviewerComment(id: string, updates: { response?: string; changeMade?: string; status?: string }): Promise<ReviewerComment | undefined>;
+  deleteReviewerComments(manuscriptId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -165,6 +169,29 @@ export class DatabaseStorage implements IStorage {
       level: users.level,
       streak: users.streak,
     }).from(users).where(gt(users.xp, 0)).orderBy(desc(users.xp)).limit(limit);
+  }
+
+  async getReviewerComments(manuscriptId: string): Promise<ReviewerComment[]> {
+    return db.select().from(reviewerComments).where(eq(reviewerComments.manuscriptId, manuscriptId)).orderBy(reviewerComments.sortOrder);
+  }
+
+  async addReviewerComments(manuscriptId: string, comments: string[]): Promise<ReviewerComment[]> {
+    if (comments.length === 0) return [];
+    const values = comments.map((comment, i) => ({
+      manuscriptId,
+      comment: comment.trim(),
+      sortOrder: i,
+    }));
+    return db.insert(reviewerComments).values(values).returning();
+  }
+
+  async updateReviewerComment(id: string, updates: { response?: string; changeMade?: string; status?: string }): Promise<ReviewerComment | undefined> {
+    const [row] = await db.update(reviewerComments).set(updates).where(eq(reviewerComments.id, id)).returning();
+    return row;
+  }
+
+  async deleteReviewerComments(manuscriptId: string): Promise<void> {
+    await db.delete(reviewerComments).where(eq(reviewerComments.manuscriptId, manuscriptId));
   }
 }
 

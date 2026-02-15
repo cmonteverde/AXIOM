@@ -751,6 +751,275 @@ ${truncatedText}` },
     }
   });
 
+  // ── Reviewer Response Table ──
+
+  // Get reviewer comments for a manuscript
+  app.get("/api/manuscripts/:id/reviewer-comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const comments = await storage.getReviewerComments(req.params.id);
+      return res.json(comments);
+    } catch (error) {
+      console.error("Error fetching reviewer comments:", error);
+      return res.status(500).json({ message: "Failed to fetch reviewer comments" });
+    }
+  });
+
+  // Upload reviewer comments (parse pasted text into individual comments)
+  app.post("/api/manuscripts/:id/reviewer-comments", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      const { comments } = req.body;
+      if (!Array.isArray(comments) || comments.length === 0) {
+        return res.status(400).json({ message: "Comments array is required" });
+      }
+
+      // Clear old comments if re-uploading
+      await storage.deleteReviewerComments(req.params.id);
+      const saved = await storage.addReviewerComments(req.params.id, comments.filter((c: string) => c.trim()));
+      return res.json(saved);
+    } catch (error) {
+      console.error("Error saving reviewer comments:", error);
+      return res.status(500).json({ message: "Failed to save reviewer comments" });
+    }
+  });
+
+  // Update a single reviewer comment (response, change, status)
+  app.patch("/api/reviewer-comments/:commentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { response, changeMade, status } = req.body;
+      const updated = await storage.updateReviewerComment(req.params.commentId, { response, changeMade, status });
+      if (!updated) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating reviewer comment:", error);
+      return res.status(500).json({ message: "Failed to update comment" });
+    }
+  });
+
+  // AI-draft responses to all reviewer comments
+  app.post("/api/manuscripts/:id/reviewer-comments/draft", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      const comments = await storage.getReviewerComments(req.params.id);
+      if (comments.length === 0) {
+        return res.status(400).json({ message: "No reviewer comments to respond to" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const openai = new OpenAI({ apiKey });
+      const manuscriptSnippet = smartTruncate(manuscript.fullText || manuscript.previewText || "", 15000);
+      const analysisContext = manuscript.analysisJson
+        ? `\nAudit summary: ${(manuscript.analysisJson as any).executiveSummary || (manuscript.analysisJson as any).summary || ""}`
+        : "";
+
+      const commentList = comments.map((c, i) => `Comment ${i + 1}: ${c.comment}`).join("\n\n");
+
+      const systemPrompt = `You are an expert academic writing assistant helping a researcher respond to peer reviewer comments.
+
+For EACH reviewer comment, provide:
+1. "response" - A diplomatic, evidence-based response to the reviewer (professional tone, acknowledging the point, explaining what you did or will do)
+2. "changeMade" - A specific description of what was or should be changed in the manuscript (e.g., "Added statistical power analysis to Section 2.3" or "Revised Discussion paragraph 4 to address limitations")
+
+Guidelines:
+- Be respectful and grateful to reviewers
+- When the reviewer is correct, acknowledge it clearly
+- When you disagree, do so diplomatically with evidence
+- Reference specific manuscript sections where changes were/should be made
+- Suggest concrete text additions or revisions when possible`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Here is the manuscript (truncated):\n\n${manuscriptSnippet}\n${analysisContext}\n\nHere are the reviewer comments to respond to:\n\n${commentList}\n\nProvide a JSON array with one object per comment, each having "index" (0-based), "response", and "changeMade" fields.` },
+        ],
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+      let drafts: Array<{ index: number; response: string; changeMade: string }>;
+      try {
+        const parsed = JSON.parse(content);
+        drafts = Array.isArray(parsed) ? parsed : parsed.responses || parsed.drafts || parsed.comments || [];
+      } catch {
+        return res.status(500).json({ message: "Failed to parse AI response" });
+      }
+
+      // Save drafted responses back to DB
+      for (const draft of drafts) {
+        const comment = comments[draft.index];
+        if (comment) {
+          await storage.updateReviewerComment(comment.id, {
+            response: draft.response,
+            changeMade: draft.changeMade,
+            status: "drafted",
+          });
+        }
+      }
+
+      const updated = await storage.getReviewerComments(req.params.id);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Reviewer draft error:", error);
+      return res.status(500).json({ message: "Failed to draft reviewer responses" });
+    }
+  });
+
+  // ── Cover Letter Generator ──
+
+  app.post("/api/manuscripts/:id/cover-letter", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first to generate a cover letter" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const openai = new OpenAI({ apiKey });
+      const analysis = manuscript.analysisJson as any;
+      const manuscriptSnippet = smartTruncate(manuscript.fullText || manuscript.previewText || "", 10000);
+      const { journalName } = req.body || {};
+
+      const systemPrompt = `You are an expert academic cover letter writer. Generate a professional cover letter for a journal editor based on the manuscript audit results.
+
+The cover letter must include:
+1. A clear statement of the manuscript title and type
+2. Key findings and their significance
+3. Why this manuscript is a good fit for the journal (if a journal name is provided)
+4. Confirmation of ethical standards and originality
+5. Author willingness to address reviewer feedback
+
+Keep the tone professional, concise, and compelling. The letter should be 3-5 paragraphs.
+Do NOT include placeholder brackets like [Your Name] — leave those as blank lines the author fills in.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Manuscript title: ${manuscript.title || manuscript.fileName || "Untitled"}
+Paper type: ${analysis.paperTypeLabel || manuscript.paperType || "Research Article"}
+Classification: ${analysis.documentClassification?.discipline || "Not specified"}, ${analysis.documentClassification?.manuscriptType || ""}
+Study design: ${analysis.documentClassification?.studyDesign || "Not specified"}
+Audit score: ${analysis.readinessScore}/100
+Key strengths: ${(analysis.strengthsToMaintain || []).join("; ")}
+Executive summary: ${analysis.executiveSummary || analysis.summary || ""}
+${journalName ? `Target journal: ${journalName}` : "No specific journal targeted yet."}
+
+Manuscript excerpt:
+${manuscriptSnippet.slice(0, 5000)}` },
+        ],
+        temperature: 0.5,
+      });
+
+      const letter = response.choices[0]?.message?.content || "";
+      return res.json({ coverLetter: letter });
+    } catch (error) {
+      console.error("Cover letter error:", error);
+      return res.status(500).json({ message: "Failed to generate cover letter" });
+    }
+  });
+
+  // ── Journal Selection Tool ──
+
+  app.post("/api/manuscripts/:id/journal-suggestions", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first to get journal suggestions" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const openai = new OpenAI({ apiKey });
+      const analysis = manuscript.analysisJson as any;
+      const manuscriptSnippet = smartTruncate(manuscript.fullText || manuscript.previewText || "", 8000);
+
+      const systemPrompt = `You are an expert academic publishing advisor. Based on the manuscript details, suggest 5-8 target journals ranked by fit.
+
+For each journal, provide:
+- "name": Full journal name
+- "publisher": Publisher name
+- "fitScore": 1-10 score for how well the manuscript fits
+- "impactFactor": Approximate impact factor (or "N/A")
+- "openAccess": true/false
+- "turnaroundWeeks": Typical review turnaround in weeks (estimate)
+- "reasoning": 1-2 sentence explanation of why this journal is a good fit
+- "tier": "reach" (ambitious), "target" (good fit), or "safety" (likely acceptance)
+
+Consider: discipline, study design, methodology rigor, manuscript quality score, and scope alignment.
+Return a JSON object with a "journals" array.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Manuscript title: ${manuscript.title || manuscript.fileName || "Untitled"}
+Paper type: ${analysis.paperTypeLabel || manuscript.paperType}
+Discipline: ${analysis.documentClassification?.discipline || "Not specified"}
+Manuscript type: ${analysis.documentClassification?.manuscriptType || "Research Article"}
+Study design: ${analysis.documentClassification?.studyDesign || "Not specified"}
+Reporting guideline: ${analysis.documentClassification?.reportingGuideline || "N/A"}
+Audit score: ${analysis.readinessScore}/100
+Key strengths: ${(analysis.strengthsToMaintain || []).join("; ")}
+Summary: ${analysis.executiveSummary || analysis.summary || ""}
+
+Manuscript excerpt:
+${manuscriptSnippet.slice(0, 4000)}` },
+        ],
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+      try {
+        const parsed = JSON.parse(content);
+        return res.json({ journals: parsed.journals || [] });
+      } catch {
+        return res.status(500).json({ message: "Failed to parse journal suggestions" });
+      }
+    } catch (error) {
+      console.error("Journal suggestion error:", error);
+      return res.status(500).json({ message: "Failed to get journal suggestions" });
+    }
+  });
+
   // Generate a share link for a manuscript's audit report
   app.post("/api/manuscripts/:id/share", isAuthenticated, async (req: any, res) => {
     try {
