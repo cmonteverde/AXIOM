@@ -28,9 +28,12 @@ import {
   Award,
   Sparkles,
   HelpCircle,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useTheme } from "@/hooks/use-theme";
 import type { Manuscript } from "@shared/schema";
 import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
 import leader1 from "@assets/leader-1.png";
@@ -180,6 +183,7 @@ export default function Dashboard() {
   }, [user, navigate]);
 
   const { toast } = useToast();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data: manuscripts = [], isLoading: manuscriptsLoading } = useQuery<Manuscript[]>({
@@ -250,6 +254,20 @@ export default function Dashboard() {
               )}
               <span className="text-sm font-medium hidden sm:inline" data-testid="text-username">{displayName}</span>
             </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                  className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors"
+                  data-testid="button-theme-toggle"
+                >
+                  {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Switch to {resolvedTheme === "dark" ? "light" : "dark"} mode
+              </TooltipContent>
+            </Tooltip>
             <DeleteAllDataButton />
             <a
               href="/api/logout"

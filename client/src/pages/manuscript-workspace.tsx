@@ -53,9 +53,12 @@ import {
   ChevronUp,
   HelpCircle,
   Lightbulb,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { useTheme } from "@/hooks/use-theme";
 
 /** Only allow http: and https: URLs to prevent javascript: / data: XSS */
 function sanitizeUrl(url: string | undefined): string | undefined {
@@ -948,6 +951,7 @@ export default function ManuscriptWorkspace() {
   const [matched, params] = useRoute("/manuscript/:id");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
   const [checkedItemsLoaded, setCheckedItemsLoaded] = useState(false);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
@@ -1301,6 +1305,13 @@ export default function ManuscriptWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors shrink-0"
+              data-testid="button-theme-toggle"
+            >
+              {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             {manuscriptText && (
               <Button
                 variant="outline"
