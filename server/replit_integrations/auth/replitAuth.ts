@@ -2,6 +2,7 @@ import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
@@ -50,13 +51,14 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(claims: any) {
+async function upsertUser(claims: any, provider: string = "replit") {
   await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
+    firstName: claims["first_name"] || claims["given_name"],
+    lastName: claims["last_name"] || claims["family_name"],
+    profileImageUrl: claims["profile_image_url"] || claims["picture"],
+    authProvider: provider,
   });
 }
 
@@ -66,22 +68,25 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // ── Serialize / Deserialize ──
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  // ── Replit OpenID Connect ──
   const config = await getOidcConfig();
 
-  const verify: VerifyFunction = async (
+  const replitVerify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
     const user = {};
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(tokens.claims(), "replit");
     verified(null, user);
   };
 
-  // Keep track of registered strategies
   const registeredStrategies = new Set<string>();
 
-  // Helper function to ensure strategy exists for a domain
   const ensureStrategy = (domain: string) => {
     const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
@@ -92,16 +97,14 @@ export async function setupAuth(app: Express) {
           scope: "openid email profile offline_access",
           callbackURL: `https://${domain}/api/callback`,
         },
-        verify
+        replitVerify
       );
       passport.use(strategy);
       registeredStrategies.add(strategyName);
     }
   };
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
+  // Replit auth routes
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
@@ -114,7 +117,7 @@ export async function setupAuth(app: Express) {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+      failureRedirect: "/",
     })(req, res, next);
   });
 
@@ -126,6 +129,74 @@ export async function setupAuth(app: Express) {
           post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
         }).href
       );
+    });
+  });
+
+  // ── Google OAuth 2.0 ──
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (googleClientId && googleClientSecret) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL: "/api/auth/google/callback",
+          scope: ["profile", "email"],
+        },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value || "";
+            const googleUser: any = {
+              claims: {
+                sub: `google-${profile.id}`,
+                email,
+                given_name: profile.name?.givenName || "",
+                family_name: profile.name?.familyName || "",
+                picture: profile.photos?.[0]?.value || "",
+              },
+              access_token: _accessToken,
+              refresh_token: _refreshToken,
+              expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 7,
+            };
+
+            await upsertUser(googleUser.claims, "google");
+            done(null, googleUser);
+          } catch (err) {
+            done(err as Error);
+          }
+        }
+      )
+    );
+
+    app.get(
+      "/api/auth/google",
+      passport.authenticate("google", {
+        scope: ["profile", "email"],
+        prompt: "select_account",
+      })
+    );
+
+    app.get(
+      "/api/auth/google/callback",
+      passport.authenticate("google", {
+        successRedirect: "/",
+        failureRedirect: "/?auth_error=google",
+      })
+    );
+  }
+
+  // ── GitHub OAuth 2.0 (using generic OAuth2) ──
+  // GitHub support can be added by setting GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
+  // For now, the frontend shows the button but routes to a config-needed page
+
+  // ── Provider availability endpoint ──
+  app.get("/api/auth/providers", (_req, res) => {
+    res.json({
+      replit: true,
+      google: !!(googleClientId && googleClientSecret),
+      github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
     });
   });
 }
