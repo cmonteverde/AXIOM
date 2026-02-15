@@ -34,6 +34,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import type { Manuscript } from "@shared/schema";
 import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
 import leader1 from "@assets/leader-1.png";
@@ -242,6 +243,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <OnboardingTour />
       <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16">
           <div className="flex items-center" data-testid="text-dashboard-logo">
