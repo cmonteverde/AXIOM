@@ -130,7 +130,11 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is my manuscript data private?",
-    a: "AXIOM stores your audit results but does not permanently store your full manuscript text beyond what is needed for the session. You can delete all your data at any time from the dashboard.",
+    a: "Your manuscript text is processed by OpenAI GPT-4o for analysis but is not used to train AI models. Audit results are stored in your account. You can delete all your data at any time from the dashboard. See our Privacy Policy for full details.",
+  },
+  {
+    q: "Should I disclose AXIOM usage in my manuscript?",
+    a: "We recommend disclosing AI-assisted tools per ICMJE 2024 guidelines. AXIOM is a validation tool — it does not generate manuscript content — but transparency is always best practice. We provide suggested disclosure language in our AI Disclosure page.",
   },
   {
     q: "What file formats can I upload?",
@@ -139,6 +143,10 @@ const FAQ_ITEMS = [
   {
     q: "How does the scoring work?",
     a: "Your audit score is weighted across 9 categories: Title/Keywords (8%), Abstract (12%), Introduction (10%), Methods (15%), Results (13%), Discussion (12%), Ethics & Transparency (10%), Writing Quality (10%), and Zero-I (10%).",
+  },
+  {
+    q: "Is there a free plan?",
+    a: "Yes! The Starter plan is free forever and includes 3 audits per month with the full 11-phase analysis, readiness scoring, and citation analysis. Upgrade to Researcher for unlimited audits and submission tools.",
   },
 ];
 
@@ -310,13 +318,17 @@ export default function Welcome() {
     const ro = new ResizeObserver(syncSize);
     ro.observe(hero);
 
+    // Respect reduced motion preference
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
     const COLORS = [
-      "hsla(258, 70%, 60%,",
-      "hsla(258, 60%, 70%,",
-      "hsla(142, 55%, 55%,",
-      "hsla(142, 50%, 65%,",
-      "hsla(45, 85%, 60%,",
-      "hsla(280, 60%, 65%,",
+      "hsla(173, 65%, 45%,",
+      "hsla(173, 55%, 60%,",
+      "hsla(152, 55%, 55%,",
+      "hsla(152, 50%, 65%,",
+      "hsla(38, 80%, 60%,",
+      "hsla(200, 60%, 55%,",
     ];
 
     const spawnBurst = (cx: number, cy: number) => {
@@ -431,6 +443,12 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm focus:font-medium"
+      >
+        Skip to main content
+      </a>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           navScrolled
@@ -438,6 +456,7 @@ export default function Welcome() {
             : "bg-transparent"
         }`}
         data-testid="nav-bar"
+        aria-label="Main navigation"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2" data-testid="text-nav-logo">
@@ -446,6 +465,7 @@ export default function Welcome() {
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-features">Features</a>
             <a href="#benefits" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-benefits">Why AXIOM</a>
+            <a href="#pricing" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-pricing">Pricing</a>
             <a href="#faq" className="text-base font-medium text-foreground hover:text-primary transition-colors" data-testid="link-nav-faq">FAQ</a>
           </div>
           <Button
@@ -458,6 +478,7 @@ export default function Welcome() {
         </div>
       </nav>
 
+      <main id="main-content" role="main">
       <section ref={heroRef} className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <canvas
           ref={canvasRef}
@@ -482,7 +503,7 @@ export default function Welcome() {
             Your research is too valuable to risk a desk rejection. AXIOM stress-tests your manuscript across 11 phases against CONSORT, PRISMA, and STROBE before you submit.
           </p>
           <p className="text-sm text-muted-foreground/70 mb-8">
-            Developed by Corrie Monteverde, PhD
+            Built by researchers, for researchers.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
             <Button
@@ -579,7 +600,7 @@ export default function Welcome() {
               </div>
             ))}
           </div>
-          <div className="rounded-md border border-primary/30 bg-primary/10 p-5 flex items-start gap-3">
+          <div className="rounded-md border border-primary/30 bg-primary/10 p-5 flex items-start gap-3 mb-4">
             <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-semibold">
@@ -587,6 +608,17 @@ export default function Welcome() {
               </p>
               <p className="text-xs opacity-60 mt-1">
                 Always consult your advisor, mentor, and colleagues. AXIOM is a rigor-checking tool, not a co-author.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-md border border-white/10 bg-white/5 p-5 flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">
+                AI Disclosure
+              </p>
+              <p className="text-xs opacity-60 mt-1">
+                AXIOM uses OpenAI GPT-4o to generate audit feedback. Your manuscript text is sent to OpenAI for analysis but is not used to train AI models. We recommend disclosing AI-assisted tools in your manuscript per ICMJE 2024 guidelines. <a href="/ai-disclosure" className="underline hover:opacity-80">Learn more</a>.
               </p>
             </div>
           </div>
@@ -630,6 +662,76 @@ export default function Welcome() {
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+              Start free. Upgrade when you're ready to publish more.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-6 flex flex-col">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-1">Starter</h3>
+                <p className="text-3xl font-bold">Free</p>
+                <p className="text-sm text-muted-foreground">Forever</p>
+              </div>
+              <ul className="space-y-2.5 text-sm flex-1 mb-6">
+                {["3 audits per month", "Core 11-phase analysis", "Readiness score + feedback", "PDF & Markdown export", "Citation analysis"].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full" onClick={() => { window.location.href = "/api/login"; }}>
+                Get Started
+              </Button>
+            </Card>
+            <Card className="p-6 flex flex-col border-primary relative">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Most Popular</Badge>
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-1">Researcher</h3>
+                <p className="text-3xl font-bold">$19<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                <p className="text-sm text-muted-foreground">Billed monthly</p>
+              </div>
+              <ul className="space-y-2.5 text-sm flex-1 mb-6">
+                {["Unlimited audits", "Everything in Starter", "AI chat follow-up", "Cover letter generator", "Journal selection tool", "Reviewer response table", "Report sharing links", "Priority analysis speed"].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full" onClick={() => { window.location.href = "/api/login"; }}>
+                Start Free Trial
+              </Button>
+            </Card>
+            <Card className="p-6 flex flex-col">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-1">Lab / Institution</h3>
+                <p className="text-3xl font-bold">Custom</p>
+                <p className="text-sm text-muted-foreground">Volume pricing</p>
+              </div>
+              <ul className="space-y-2.5 text-sm flex-1 mb-6">
+                {["Everything in Researcher", "Team dashboard", "Shared manuscript workspace", "Admin controls & SSO", "Bulk audit reports", "Dedicated support"].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full">
+                Contact Us
+              </Button>
+            </Card>
           </div>
         </div>
       </section>
@@ -683,33 +785,40 @@ export default function Welcome() {
         </div>
       </section>
 
-      <footer className="border-t border-border py-12 px-4 sm:px-6 lg:px-8">
+      </main>
+      <footer className="border-t border-border py-12 px-4 sm:px-6 lg:px-8" role="contentinfo">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center mb-3">
                 <img src={axiomLogoPath} alt="AXIOM" className="w-10 h-10 object-contain" />
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 AXIOM stress-tests manuscripts against top-tier rigor standards (CONSORT, PRISMA, STROBE) before submission.
-                <br />
-                Developed by Corrie Monteverde, PhD
               </p>
             </div>
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Product</h4>
               <ul className="space-y-2">
-                <li><a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-features">Features</a></li>
-                <li><a href="#benefits" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-benefits">Why AXIOM</a></li>
-                <li><a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-faq">FAQ</a></li>
+                <li><a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Legal</h4>
+              <ul className="space-y-2">
+                <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="/ai-disclosure" className="text-sm text-muted-foreground hover:text-foreground transition-colors">AI Disclosure</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Standards</h4>
               <ul className="space-y-2">
-                <li><a href="https://www.icmje.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-icmje">ICMJE</a></li>
-                <li><a href="https://www.equator-network.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-equator">EQUATOR Network</a></li>
-                <li><a href="https://apastyle.apa.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-apa">APA Style</a></li>
+                <li><a href="https://www.icmje.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">ICMJE</a></li>
+                <li><a href="https://www.equator-network.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">EQUATOR Network</a></li>
+                <li><a href="https://apastyle.apa.org/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">APA Style</a></li>
               </ul>
             </div>
           </div>

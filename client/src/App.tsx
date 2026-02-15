@@ -12,6 +12,9 @@ import Dashboard from "@/pages/dashboard";
 import NewManuscript from "@/pages/new-manuscript";
 import ManuscriptWorkspace from "@/pages/manuscript-workspace";
 import SharedReport from "@/pages/shared-report";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
+import AIDisclosure from "@/pages/ai-disclosure";
 
 function Router() {
   return (
@@ -22,6 +25,9 @@ function Router() {
       <Route path="/manuscript/new" component={NewManuscript} />
       <Route path="/manuscript/:id" component={ManuscriptWorkspace} />
       <Route path="/shared/:token" component={SharedReport} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/ai-disclosure" component={AIDisclosure} />
       <Route component={NotFound} />
     </Switch>
   );
