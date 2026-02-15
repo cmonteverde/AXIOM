@@ -61,6 +61,8 @@ import {
   Minus,
   MessageCircle,
   Send,
+  Link2,
+  Quote,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -1030,6 +1032,186 @@ function AuditScoreTrend({ manuscriptId }: { manuscriptId: string }) {
   );
 }
 
+interface CitationData {
+  inTextCitationCount: number;
+  referenceCount: number;
+  citationStyle: string;
+  hasReferenceSection: boolean;
+  references: { text: string; year: number | null; hasDoiOrUrl: boolean }[];
+  issues: string[];
+  stats: { withDoi: number; recentFiveYears: number; oldestYear: number | null; newestYear: number | null };
+}
+
+function CitationAnalysis({ manuscriptId }: { manuscriptId: string }) {
+  const [citations, setCitations] = useState<CitationData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRefs, setShowRefs] = useState(false);
+  const { toast } = useToast();
+
+  const analyze = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/citations`);
+      const data = await res.json();
+      setCitations(data);
+    } catch {
+      setError("Failed to extract citations");
+      toast({ title: "Error", description: "Citation extraction failed", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!citations && !isLoading) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Quote className="w-4 h-4 text-primary" />
+          Citation Analysis
+        </h3>
+        <Card className="p-4">
+          <p className="text-xs text-muted-foreground mb-3">
+            Analyze your manuscript's citations and references for completeness, recency, and formatting.
+          </p>
+          <Button size="sm" onClick={analyze} className="text-xs">
+            <Search className="w-3.5 h-3.5 mr-1.5" />
+            Analyze Citations
+          </Button>
+          {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Quote className="w-4 h-4 text-primary" />
+          Citation Analysis
+        </h3>
+        <Card className="p-4 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-xs text-muted-foreground">Extracting citations...</span>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!citations) return null;
+
+  const doiPercent = citations.referenceCount > 0
+    ? Math.round((citations.stats.withDoi / citations.referenceCount) * 100)
+    : 0;
+  const recentPercent = citations.referenceCount > 0
+    ? Math.round((citations.stats.recentFiveYears / citations.referenceCount) * 100)
+    : 0;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <Quote className="w-4 h-4 text-primary" />
+        Citation Analysis
+        <Badge variant="secondary" className="text-[10px]">{citations.citationStyle}</Badge>
+      </h3>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold text-primary">{citations.inTextCitationCount}</p>
+          <p className="text-[10px] text-muted-foreground">In-text Citations</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold text-primary">{citations.referenceCount}</p>
+          <p className="text-[10px] text-muted-foreground">References Found</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold">{doiPercent}%</p>
+          <p className="text-[10px] text-muted-foreground">Have DOI/URL</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold">{recentPercent}%</p>
+          <p className="text-[10px] text-muted-foreground">Last 5 Years</p>
+        </Card>
+      </div>
+
+      {citations.stats.oldestYear && citations.stats.newestYear && (
+        <p className="text-[10px] text-muted-foreground mb-3">
+          Year range: {citations.stats.oldestYear} – {citations.stats.newestYear}
+        </p>
+      )}
+
+      {/* Issues */}
+      {citations.issues.length > 0 && (
+        <Card className="p-3 mb-3 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+            Issues ({citations.issues.length})
+          </h4>
+          <ul className="space-y-1.5">
+            {citations.issues.map((issue, i) => (
+              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-amber-600 shrink-0 mt-0.5">&bull;</span>
+                {issue}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {citations.issues.length === 0 && (
+        <Card className="p-3 mb-3 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+          <p className="text-xs flex items-center gap-1.5 text-green-700 dark:text-green-400">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            No citation issues detected
+          </p>
+        </Card>
+      )}
+
+      {/* Reference list toggle */}
+      {citations.references.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowRefs(!showRefs)}
+            className="text-xs text-primary flex items-center gap-1 mb-2 hover:underline"
+          >
+            {showRefs ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {showRefs ? "Hide" : "Show"} references ({citations.references.length})
+          </button>
+          {showRefs && (
+            <Card className="p-3 max-h-60 overflow-y-auto">
+              <ul className="space-y-2">
+                {citations.references.map((ref, i) => (
+                  <li key={i} className="text-[11px] text-muted-foreground border-b border-border/50 pb-1.5 last:border-0">
+                    <span>{ref.text}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {ref.year && <Badge variant="outline" className="text-[9px] h-4">{ref.year}</Badge>}
+                      {ref.hasDoiOrUrl && (
+                        <Badge variant="secondary" className="text-[9px] h-4">
+                          <Link2 className="w-2.5 h-2.5 mr-0.5" />
+                          DOI/URL
+                        </Badge>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Re-analyze button */}
+      <Button variant="ghost" size="sm" onClick={analyze} className="text-xs mt-2 h-7">
+        <RefreshCw className="w-3 h-3 mr-1" />
+        Re-analyze
+      </Button>
+    </div>
+  );
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -1627,7 +1809,7 @@ export default function ManuscriptWorkspace() {
         manuscriptId={manuscript.id}
       />
 
-      <AuditChatPanel manuscriptId={manuscript.id} hasAnalysis={hasAnalysis} />
+      <AuditChatPanel manuscriptId={manuscript.id} hasAnalysis={!!hasAnalysis} />
 
       <div className="max-w-[95%] mx-auto p-2 sm:p-4">
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
@@ -1946,6 +2128,8 @@ export default function ManuscriptWorkspace() {
                             </Card>
                           </div>
                         )}
+
+                        <CitationAnalysis manuscriptId={manuscriptId!} />
                       </div>
                     </TabsContent>
 

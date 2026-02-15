@@ -184,6 +184,97 @@ function calculateLevel(totalXP: number): number {
   return level;
 }
 
+/**
+ * Extract citations from manuscript text using common academic reference patterns.
+ */
+function extractCitations(text: string) {
+  // Find in-text citations: (Author, Year), (Author et al., Year), [1], [1,2], [1-3]
+  const parentheticalRefs = text.match(/\([A-Z][a-z]+(?:\s(?:et\s+al\.?|&\s+[A-Z][a-z]+))?,?\s*\d{4}[a-z]?\)/g) || [];
+  const numericRefs = text.match(/\[\d+(?:[,\s-]+\d+)*\]/g) || [];
+  const inTextCount = parentheticalRefs.length + numericRefs.length;
+
+  // Try to find the references/bibliography section
+  const refSectionMatch = text.match(/\n\s*(References|Bibliography|Works Cited|Literature Cited)\s*\n/i);
+  const refSectionStart = refSectionMatch ? refSectionMatch.index! : -1;
+  const refText = refSectionStart >= 0 ? text.slice(refSectionStart) : "";
+
+  // Extract individual reference entries from the reference list
+  const refEntries: { text: string; year: number | null; hasDoiOrUrl: boolean }[] = [];
+  if (refText) {
+    // Split by common patterns: numbered refs [1], or lines starting with author names
+    const lines = refText.split(/\n/).filter(l => l.trim().length > 20);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip the section header itself
+      if (/^(References|Bibliography|Works Cited|Literature Cited)$/i.test(trimmed)) continue;
+      // Skip lines that are clearly not references
+      if (trimmed.length < 30) continue;
+
+      const yearMatch = trimmed.match(/\b(19|20)\d{2}[a-z]?\b/);
+      const year = yearMatch ? parseInt(yearMatch[0]) : null;
+      const hasDoiOrUrl = /doi[:\s]|https?:\/\/|10\.\d{4,}/i.test(trimmed);
+
+      refEntries.push({ text: trimmed.slice(0, 200), year, hasDoiOrUrl });
+    }
+  }
+
+  // Analyze issues
+  const issues: string[] = [];
+  const currentYear = new Date().getFullYear();
+
+  if (inTextCount === 0) {
+    issues.push("No in-text citations detected. Ensure citations follow (Author, Year) or [Number] format.");
+  }
+
+  if (refEntries.length === 0 && refSectionStart < 0) {
+    issues.push("No References section found. Add a clearly labeled 'References' section.");
+  }
+
+  if (refEntries.length > 0) {
+    const withDoi = refEntries.filter(r => r.hasDoiOrUrl).length;
+    const doiPercent = Math.round((withDoi / refEntries.length) * 100);
+    if (doiPercent < 50) {
+      issues.push(`Only ${doiPercent}% of references include DOIs or URLs. Adding DOIs improves verifiability.`);
+    }
+
+    const years = refEntries.map(r => r.year).filter((y): y is number => y !== null);
+    if (years.length > 0) {
+      const recentCount = years.filter(y => y >= currentYear - 5).length;
+      const recentPercent = Math.round((recentCount / years.length) * 100);
+      if (recentPercent < 30) {
+        issues.push(`Only ${recentPercent}% of references are from the last 5 years. Consider adding more recent sources.`);
+      }
+      const oldestYear = Math.min(...years);
+      const newestYear = Math.max(...years);
+      if (newestYear < currentYear - 3) {
+        issues.push(`Most recent reference is from ${newestYear}. Consider updating with more current literature.`);
+      }
+    }
+
+    if (refEntries.length < 10) {
+      issues.push(`Only ${refEntries.length} references found. Most journals expect 20-50 references for a full paper.`);
+    }
+  }
+
+  // Check for self-citation issues (rough heuristic)
+  const style = numericRefs.length > parentheticalRefs.length ? "numeric" : "author-year";
+
+  return {
+    inTextCitationCount: inTextCount,
+    referenceCount: refEntries.length,
+    citationStyle: style,
+    hasReferenceSection: refSectionStart >= 0,
+    references: refEntries.slice(0, 50), // cap at 50 for response size
+    issues,
+    stats: {
+      withDoi: refEntries.filter(r => r.hasDoiOrUrl).length,
+      recentFiveYears: refEntries.filter(r => r.year !== null && r.year >= currentYear - 5).length,
+      oldestYear: refEntries.length > 0 ? Math.min(...refEntries.map(r => r.year).filter((y): y is number => y !== null)) : null,
+      newestYear: refEntries.length > 0 ? Math.max(...refEntries.map(r => r.year).filter((y): y is number => y !== null)) : null,
+    },
+  };
+}
+
 // General API rate limit: 100 requests per minute per user
 const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
 
@@ -623,6 +714,28 @@ ${truncatedText}` },
     } catch (error) {
       console.error("Error detecting paper type:", error);
       return res.status(500).json({ message: "Failed to detect paper type" });
+    }
+  });
+
+  // Citation extraction and analysis
+  app.post("/api/manuscripts/:id/citations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      const text = manuscript.fullText || manuscript.previewText || "";
+      if (!text) {
+        return res.status(400).json({ message: "No manuscript text available" });
+      }
+
+      const citations = extractCitations(text);
+      return res.json(citations);
+    } catch (error) {
+      console.error("Citation extraction error:", error);
+      return res.status(500).json({ message: "Failed to extract citations" });
     }
   });
 
