@@ -62,11 +62,11 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    console.error("Internal Server Error:", err);
+    console.error(`[ERROR] ${req.method} ${req.path} ${status}:`, err.stack || err);
 
     if (res.headersSent) {
       return next(err);
@@ -100,4 +100,30 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Graceful shutdown
+  const shutdown = (signal: string) => {
+    log(`${signal} received, shutting down gracefully...`);
+    httpServer.close(() => {
+      log("Server closed.");
+      process.exit(0);
+    });
+    // Force exit after 10 seconds if connections don't close
+    setTimeout(() => {
+      log("Forcing shutdown after timeout.");
+      process.exit(1);
+    }, 10_000);
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+
+  // Log unhandled errors instead of crashing silently
+  process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled Promise Rejection:", reason);
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:", err);
+    // Let the process exit so it can be restarted by a process manager
+    process.exit(1);
+  });
 })();
