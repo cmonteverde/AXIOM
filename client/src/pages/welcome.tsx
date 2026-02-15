@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AuthDialog } from "@/components/auth-dialog";
 import axiomLogoPath from "@assets/image_(2)_1771052353785.png";
 import analysisScreenshot from "@assets/image_1770620881472.png";
 import dashboardScreenshot from "@assets/image_1770620853328.png";
@@ -291,6 +292,7 @@ export default function Welcome() {
   const [, navigate] = useLocation();
   const { user, isLoading, isAuthenticated } = useAuth();
   const [navScrolled, setNavScrolled] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Array<{
@@ -470,7 +472,7 @@ export default function Welcome() {
           </div>
           <Button
             data-testid="button-nav-login"
-            onClick={() => { window.location.href = "/api/login"; }}
+            onClick={() => setAuthOpen(true)}
             size="sm"
           >
             Sign In
@@ -508,7 +510,7 @@ export default function Welcome() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
             <Button
               data-testid="button-login"
-              onClick={() => { window.location.href = "/api/login"; }}
+              onClick={() => setAuthOpen(true)}
               size="lg"
               className="px-8"
             >
@@ -691,7 +693,7 @@ export default function Welcome() {
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full" onClick={() => { window.location.href = "/api/login"; }}>
+              <Button variant="outline" className="w-full" onClick={() => setAuthOpen(true)}>
                 Get Started
               </Button>
             </Card>
@@ -710,7 +712,7 @@ export default function Welcome() {
                   </li>
                 ))}
               </ul>
-              <Button className="w-full" onClick={() => { window.location.href = "/api/login"; }}>
+              <Button className="w-full" onClick={() => setAuthOpen(true)}>
                 Start Free Trial
               </Button>
             </Card>
@@ -769,7 +771,7 @@ export default function Welcome() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Button
               data-testid="button-cta-final"
-              onClick={() => { window.location.href = "/api/login"; }}
+              onClick={() => setAuthOpen(true)}
               size="lg"
               className="px-8"
             >
@@ -834,6 +836,8 @@ export default function Welcome() {
           </div>
         </div>
       </footer>
+
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 }

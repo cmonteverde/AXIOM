@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   lastActiveDate: text("last_active_date"),
   achievements: jsonb("achievements").default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
+  authProvider: text("auth_provider").default("replit"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
