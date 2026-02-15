@@ -205,6 +205,16 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerObjectStorageRoutes(app);
 
+  // Health check endpoint (no auth required)
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      version: process.env.npm_package_version || "1.0.0",
+    });
+  });
+
   // Apply general rate limiting to all /api routes
   app.use("/api", apiLimiter);
 
