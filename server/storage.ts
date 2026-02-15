@@ -27,6 +27,7 @@ export interface IStorage {
   addReviewerComments(manuscriptId: string, comments: string[]): Promise<ReviewerComment[]>;
   updateReviewerComment(id: string, updates: { response?: string; changeMade?: string; status?: string }): Promise<ReviewerComment | undefined>;
   deleteReviewerComments(manuscriptId: string): Promise<void>;
+  unlockAchievement(userId: string, achievementId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -192,6 +193,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReviewerComments(manuscriptId: string): Promise<void> {
     await db.delete(reviewerComments).where(eq(reviewerComments.manuscriptId, manuscriptId));
+  }
+
+  async unlockAchievement(userId: string, achievementId: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+    const current = (user.achievements as Array<{ id: string; unlockedAt: string }>) || [];
+    if (current.some(a => a.id === achievementId)) return false; // Already unlocked
+    const updated = [...current, { id: achievementId, unlockedAt: new Date().toISOString() }];
+    await db.update(users).set({ achievements: updated }).where(eq(users.id, userId));
+    return true;
   }
 }
 

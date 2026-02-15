@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   level: integer("level").notNull().default(1),
   streak: integer("streak").notNull().default(0),
   lastActiveDate: text("last_active_date"),
+  achievements: jsonb("achievements").default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

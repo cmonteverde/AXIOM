@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { isUnauthorizedError } from "@/lib/auth-utils";
 import {
+  Check,
   Flame,
   Trophy,
   FileText,
@@ -231,6 +232,10 @@ export default function Dashboard() {
     analyzedCount > 0,
     streak >= 3,
     level >= 5,
+    manuscripts.length >= 5,
+    analyzedCount >= 10,
+    streak >= 7,
+    xp >= 5000,
   ].filter(Boolean).length;
 
   return (
@@ -608,27 +613,44 @@ export default function Dashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
-                  { title: "First Audit", description: "Run your first AXIOM audit", icon: Sparkles, earned: analyzedCount > 0 },
-                  { title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
-                  { title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
-                ].map((achievement) => (
-                  <Card
-                    key={achievement.title}
-                    className={`p-4 ${achievement.earned ? "" : "opacity-50"}`}
-                    data-testid={`card-achievement-${achievement.title.toLowerCase().replace(/\s/g, "-")}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${achievement.earned ? "bg-primary/10" : "bg-muted"}`}>
-                        <achievement.icon className={`w-4.5 h-4.5 ${achievement.earned ? "text-primary" : "text-muted-foreground"}`} />
+                  { id: "first-upload", title: "First Upload", description: "Upload your first manuscript", icon: Upload, earned: manuscripts.length > 0 },
+                  { id: "first-audit", title: "First Audit", description: "Run your first AXIOM audit", icon: Sparkles, earned: analyzedCount > 0 },
+                  { id: "streak-starter", title: "Streak Starter", description: "Maintain a 3-day streak", icon: Flame, earned: streak >= 3 },
+                  { id: "scholar-rising", title: "Scholar Rising", description: "Reach Level 5", icon: TrendingUp, earned: level >= 5 },
+                  { id: "prolific-writer", title: "Prolific Writer", description: "Upload 5 manuscripts", icon: FileText, earned: manuscripts.length >= 5 },
+                  { id: "audit-master", title: "Audit Master", description: "Complete 10 audits", icon: Award, earned: analyzedCount >= 10 },
+                  { id: "week-warrior", title: "Week Warrior", description: "Maintain a 7-day streak", icon: Flame, earned: streak >= 7 },
+                  { id: "xp-milestone", title: "XP Milestone", description: "Earn 5,000 total XP", icon: Sparkles, earned: xp >= 5000 },
+                ].map((achievement) => {
+                  const persisted = (user.achievements as Array<{ id: string; unlockedAt: string }> || [])
+                    .find(a => a.id === achievement.id);
+                  const unlockedAt = persisted?.unlockedAt;
+                  return (
+                    <Card
+                      key={achievement.id}
+                      className={`p-4 ${achievement.earned ? "" : "opacity-50"}`}
+                      data-testid={`card-achievement-${achievement.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 ${achievement.earned ? "bg-primary/10" : "bg-muted"}`}>
+                          <achievement.icon className={`w-4.5 h-4.5 ${achievement.earned ? "text-primary" : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold">{achievement.title}</p>
+                            {achievement.earned && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                          {unlockedAt && (
+                            <p className="text-[10px] text-primary/70 mt-0.5">
+                              Unlocked {new Date(unlockedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold">{achievement.title}</p>
-                        <p className="text-xs text-muted-foreground">{achievement.description}</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             </section>
 

@@ -186,6 +186,37 @@ function calculateLevel(totalXP: number): number {
 }
 
 /**
+ * Check and unlock achievements for a user based on current state.
+ */
+async function checkAchievements(userId: string) {
+  try {
+    const user = await storage.getUser(userId);
+    if (!user) return;
+    const manuscripts = await storage.getManuscriptsByUserId(userId);
+    const analyzedCount = manuscripts.filter(m => m.analysisStatus === "completed").length;
+
+    const checks: Array<{ id: string; condition: boolean }> = [
+      { id: "first-upload", condition: manuscripts.length > 0 },
+      { id: "first-audit", condition: analyzedCount > 0 },
+      { id: "streak-starter", condition: (user.streak ?? 0) >= 3 },
+      { id: "scholar-rising", condition: (user.level ?? 1) >= 5 },
+      { id: "prolific-writer", condition: manuscripts.length >= 5 },
+      { id: "audit-master", condition: analyzedCount >= 10 },
+      { id: "week-warrior", condition: (user.streak ?? 0) >= 7 },
+      { id: "xp-milestone", condition: (user.xp ?? 0) >= 5000 },
+    ];
+
+    for (const { id, condition } of checks) {
+      if (condition) {
+        await storage.unlockAchievement(userId, id);
+      }
+    }
+  } catch (err) {
+    console.error("Achievement check error:", err);
+  }
+}
+
+/**
  * Extract citations from manuscript text using common academic reference patterns.
  */
 function extractCitations(text: string) {
@@ -408,6 +439,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid manuscript data" });
       }
       const manuscript = await storage.createManuscript(parsed.data);
+      checkAchievements(userId); // fire-and-forget
       return res.json(manuscript);
     } catch (error) {
       console.error("Error creating manuscript:", error);
@@ -667,6 +699,7 @@ ${truncatedText}` },
           );
           await storage.updateUserStreak(userId, newStreak, dateStr);
         }
+        checkAchievements(userId); // fire-and-forget
       } catch (gamErr) {
         // Gamification errors should never block the analysis response
         console.error("Gamification update error:", gamErr);
