@@ -382,8 +382,8 @@ export default function Dashboard() {
                   <div className="space-y-3 pt-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">This Week</h3>
                     {[
-                      { label: "Sessions", value: "5", icon: BarChart3 },
-                      { label: "XP Earned", value: "+420", icon: TrendingUp },
+                      { label: "Manuscripts", value: String(activeManuscripts.length), icon: BarChart3 },
+                      { label: "Total XP", value: xp > 0 ? xp.toLocaleString() : "0", icon: TrendingUp },
                       { label: "Analyzed", value: String(analyzedCount), icon: FileText },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center justify-between">
@@ -641,7 +641,7 @@ export default function Dashboard() {
                   <div className="p-5 bg-muted/30 border-l border-border">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Your Standing</h3>
                     <div className="flex items-center gap-3 p-3 rounded-md bg-primary/5 border border-primary/10 mb-5">
-                      <span className="w-6 text-center text-sm font-bold text-primary">#147</span>
+                      <span className="w-6 text-center text-sm font-bold text-primary">#{Math.max(1, LEADERBOARD_DATA.filter(e => e.xp > xp).length + 1)}</span>
                       {user.profileImageUrl ? (
                         <img src={user.profileImageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                       ) : (
@@ -660,18 +660,28 @@ export default function Dashboard() {
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <div className="flex items-center justify-between gap-2 text-xs mb-1">
-                          <span className="text-muted-foreground">To next rank (#146)</span>
-                          <span className="font-medium">320 XP needed</span>
-                        </div>
-                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full" style={{ width: "65%" }} />
-                        </div>
+                        {(() => {
+                          const rank = LEADERBOARD_DATA.filter(e => e.xp > xp).length + 1;
+                          const nextAbove = LEADERBOARD_DATA.filter(e => e.xp > xp).sort((a, b) => a.xp - b.xp)[0];
+                          const xpNeeded = nextAbove ? nextAbove.xp - xp : 0;
+                          const progressToNext = nextAbove ? Math.min((xp / nextAbove.xp) * 100, 100) : 100;
+                          return (
+                            <>
+                              <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                                <span className="text-muted-foreground">{nextAbove ? `To rank #${rank - 1}` : "Top of the board!"}</span>
+                                <span className="font-medium">{xpNeeded > 0 ? `${xpNeeded.toLocaleString()} XP needed` : "You're #1!"}</span>
+                              </div>
+                              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{ width: `${progressToNext}%` }} />
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="pt-2 space-y-2">
                         {[
-                          { label: "Field Rank", value: "#12", sublabel: user.primaryField || "Your Field" },
-                          { label: "This Week", value: "+3 positions", sublabel: "Keep it up!" },
+                          { label: "Level", value: `${level} — ${levelTitle}`, sublabel: `${nextLevelXp - xp} XP to next level` },
+                          { label: "Streak", value: streak > 0 ? `${streak} day${streak !== 1 ? "s" : ""}` : "Start today!", sublabel: streak >= 3 ? "Keep it up!" : "Audit daily to build streak" },
                         ].map((stat) => (
                           <div key={stat.label} className="flex items-center justify-between gap-2">
                             <div>

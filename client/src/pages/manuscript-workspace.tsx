@@ -883,6 +883,7 @@ export default function ManuscriptWorkspace() {
     onSuccess: (_data, { helpTypes }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Reset UI state that references old analysis data
       setCheckedItems(new Set());
       setCheckedItemsLoaded(false);

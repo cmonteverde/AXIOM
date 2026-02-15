@@ -117,6 +117,73 @@ function buildFocusInstructions(helpTypes: string[]): string {
   return `AUDIT SCOPE: The user has specifically requested DEEP analysis of the following areas. Provide EXTRA detailed feedback for these:\n${focusAreas.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n\nFor the selected focus areas, provide at minimum 3 feedback items per area with specific quotes from the manuscript. You should still briefly cover other sections, but allocate 70% of your analysis to the focus areas above.`;
 }
 
+/**
+ * Calculate XP to award for a completed audit.
+ */
+function calculateAuditXP(textLength: number, helpTypes: string[], readinessScore: number | null): number {
+  let xp = 100; // base XP per audit
+
+  // Bonus for longer manuscripts (more effort to review)
+  if (textLength > 20000) xp += 100;
+  else if (textLength > 5000) xp += 50;
+
+  // Bonus for comprehensive audit
+  if (helpTypes.includes("Comprehensive Review") || helpTypes.length >= 5) {
+    xp += 50;
+  }
+
+  // Bonus for high-quality manuscripts (scored well)
+  if (readinessScore !== null && readinessScore >= 80) {
+    xp += 25;
+  }
+
+  return xp;
+}
+
+/**
+ * Update user streak based on last active date.
+ * Returns the new streak value.
+ */
+function calculateStreak(lastActiveDate: string | null, currentStreak: number): { streak: number; dateStr: string } {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  if (!lastActiveDate) {
+    return { streak: 1, dateStr };
+  }
+
+  if (lastActiveDate === dateStr) {
+    // Already active today, no change
+    return { streak: currentStreak, dateStr };
+  }
+
+  // Check if last active was yesterday
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  if (lastActiveDate === yesterdayStr) {
+    return { streak: currentStreak + 1, dateStr };
+  }
+
+  // Streak broken — reset to 1
+  return { streak: 1, dateStr };
+}
+
+/**
+ * Determine user level from total XP.
+ * Each level requires level * 1000 XP (matches frontend getLevelThreshold).
+ */
+function calculateLevel(totalXP: number): number {
+  let level = 1;
+  let threshold = 1000;
+  while (totalXP >= threshold) {
+    level++;
+    threshold = level * 1000;
+  }
+  return level;
+}
+
 // General API rate limit: 100 requests per minute per user
 const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
 
@@ -454,6 +521,26 @@ ${truncatedText}` },
 
       const readinessScore = analysisJson.readinessScore ?? null;
       await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
+
+      // --- Gamification: award XP, update streak, check level-up ---
+      try {
+        const xpEarned = calculateAuditXP(textToAnalyze.length, selectedHelpTypes, readinessScore);
+        const currentUser = await storage.getUser(userId);
+        if (currentUser) {
+          const newTotalXP = (currentUser.xp ?? 0) + xpEarned;
+          const newLevel = calculateLevel(newTotalXP);
+          await storage.updateUserXP(userId, newTotalXP, newLevel);
+
+          const { streak: newStreak, dateStr } = calculateStreak(
+            currentUser.lastActiveDate,
+            currentUser.streak ?? 0
+          );
+          await storage.updateUserStreak(userId, newStreak, dateStr);
+        }
+      } catch (gamErr) {
+        // Gamification errors should never block the analysis response
+        console.error("Gamification update error:", gamErr);
+      }
 
       activeAnalyses.delete(manuscriptId);
       return res.json({ status: "completed", analysis: analysisJson });
