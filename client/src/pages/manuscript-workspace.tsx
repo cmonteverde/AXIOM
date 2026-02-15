@@ -59,6 +59,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -1028,6 +1030,143 @@ function AuditScoreTrend({ manuscriptId }: { manuscriptId: string }) {
   );
 }
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function AuditChatPanel({ manuscriptId, hasAnalysis }: { manuscriptId: string; hasAnalysis: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    const userMsg: ChatMessage = { role: "user", content: input.trim() };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/chat`, {
+        message: userMsg.content,
+        history: messages.slice(-6),
+      });
+      const data = await res.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+    } catch {
+      toast({ title: "Chat Error", description: "Failed to get a response. Try again.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!hasAnalysis) return null;
+
+  return (
+    <>
+      {/* Floating chat button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        data-testid="button-chat-toggle"
+      >
+        {isOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+      </button>
+
+      {/* Chat panel */}
+      {isOpen && (
+        <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 h-[28rem] bg-card border border-border rounded-lg shadow-xl flex flex-col animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-3 border-b flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Ask about your audit</h3>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+            {messages.length === 0 && (
+              <div className="text-center py-8">
+                <MessageCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground mb-3">Ask questions about your audit results</p>
+                <div className="space-y-1.5">
+                  {[
+                    "How can I improve my Methods section?",
+                    "What are my biggest issues?",
+                    "How do I fix the abstract structure?",
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => { setInput(suggestion); }}
+                      className="block w-full text-left text-xs text-primary hover:bg-muted rounded-md px-2 py-1.5 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                }`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg px-3 py-2 text-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border-t">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                placeholder="Ask a question..."
+                className="flex-1 text-sm bg-muted rounded-md px-3 py-1.5 border-0 outline-none focus:ring-1 focus:ring-primary"
+                disabled={isLoading}
+                data-testid="input-chat"
+              />
+              <Button
+                size="sm"
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                className="px-2"
+                data-testid="button-chat-send"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function ManuscriptWorkspace() {
   const [, navigate] = useLocation();
   const [matched, params] = useRoute("/manuscript/:id");
@@ -1487,6 +1626,8 @@ export default function ManuscriptWorkspace() {
         onOpenChange={setShowUpdateTextDialog}
         manuscriptId={manuscript.id}
       />
+
+      <AuditChatPanel manuscriptId={manuscript.id} hasAnalysis={hasAnalysis} />
 
       <div className="max-w-[95%] mx-auto p-2 sm:p-4">
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>

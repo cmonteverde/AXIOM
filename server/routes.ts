@@ -626,6 +626,84 @@ ${truncatedText}` },
     }
   });
 
+  // Chat about audit results
+  app.post("/api/manuscripts/:id/chat", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first before asking questions." });
+      }
+
+      const { message, history: chatHistory } = req.body;
+      if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const analysis = manuscript.analysisJson as any;
+      const auditContext = JSON.stringify({
+        readinessScore: analysis.readinessScore,
+        executiveSummary: analysis.executiveSummary,
+        criticalIssues: analysis.criticalIssues?.slice(0, 5),
+        detailedFeedback: analysis.detailedFeedback?.slice(0, 10),
+        actionItems: analysis.actionItems?.slice(0, 10),
+        strengthsToMaintain: analysis.strengthsToMaintain,
+      });
+
+      const openai = new OpenAI({ apiKey });
+      const messages: any[] = [
+        {
+          role: "system",
+          content: `You are AXIOM's research writing assistant. The user is asking questions about their manuscript audit results. Be concise, specific, and actionable. Reference specific findings from the audit when relevant.
+
+Here is the audit context:
+${auditContext}
+
+Manuscript title: ${manuscript.title || "Untitled"}
+Paper type: ${manuscript.paperType || "generic"}
+
+Guidelines:
+- Keep answers concise (2-4 paragraphs max)
+- Reference specific audit findings when relevant
+- Provide actionable, concrete suggestions
+- Use academic writing conventions`,
+        },
+      ];
+
+      // Include recent chat history for context (max 6 messages)
+      if (Array.isArray(chatHistory)) {
+        for (const msg of chatHistory.slice(-6)) {
+          if (msg.role === "user" || msg.role === "assistant") {
+            messages.push({ role: msg.role, content: String(msg.content).slice(0, 1000) });
+          }
+        }
+      }
+
+      messages.push({ role: "user", content: message.slice(0, 2000) });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages,
+        max_tokens: 1000,
+        temperature: 0.4,
+      });
+
+      const reply = response.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
+      return res.json({ reply });
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      return res.status(500).json({ message: "Chat failed. Please try again." });
+    }
+  });
+
   // Audit history endpoint
   app.get("/api/manuscripts/:id/history", isAuthenticated, async (req: any, res) => {
     try {
