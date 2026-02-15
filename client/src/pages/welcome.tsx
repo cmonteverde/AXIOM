@@ -810,7 +810,11 @@ export default function Welcome() {
               <ul className="space-y-2">
                 <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
                 <li><a href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="/cookies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Cookie Policy</a></li>
+                <li><a href="/acceptable-use" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Acceptable Use</a></li>
+                <li><a href="/dmca" className="text-sm text-muted-foreground hover:text-foreground transition-colors">DMCA / Copyright</a></li>
                 <li><a href="/ai-disclosure" className="text-sm text-muted-foreground hover:text-foreground transition-colors">AI Disclosure</a></li>
+                <li><a href="/accessibility" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Accessibility</a></li>
               </ul>
             </div>
             <div>

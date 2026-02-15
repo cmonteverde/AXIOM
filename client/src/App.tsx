@@ -15,6 +15,10 @@ import SharedReport from "@/pages/shared-report";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import AIDisclosure from "@/pages/ai-disclosure";
+import AccessibilityStatement from "@/pages/accessibility";
+import CookiePolicy from "@/pages/cookies";
+import DMCA from "@/pages/dmca";
+import AcceptableUse from "@/pages/acceptable-use";
 
 function Router() {
   return (
@@ -28,6 +32,10 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/ai-disclosure" component={AIDisclosure} />
+      <Route path="/accessibility" component={AccessibilityStatement} />
+      <Route path="/cookies" component={CookiePolicy} />
+      <Route path="/dmca" component={DMCA} />
+      <Route path="/acceptable-use" component={AcceptableUse} />
       <Route component={NotFound} />
     </Switch>
   );
