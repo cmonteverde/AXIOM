@@ -55,6 +55,17 @@ import {
   Lightbulb,
   Sun,
   Moon,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  MessageCircle,
+  Send,
+  Link2,
+  Quote,
+  Share2,
+  Copy,
+  LinkIcon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
@@ -946,6 +957,401 @@ function ScoreBreakdownPanel({ breakdown, onClose }: { breakdown: NonNullable<An
   );
 }
 
+interface AuditHistoryEntry {
+  id: string;
+  readinessScore: number;
+  criticalIssueCount: number;
+  feedbackCount: number;
+  actionItemCount: number;
+  createdAt: string;
+}
+
+function AuditScoreTrend({ manuscriptId }: { manuscriptId: string }) {
+  const { data: history = [] } = useQuery<AuditHistoryEntry[]>({
+    queryKey: ["/api/manuscripts", manuscriptId, "history"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/manuscripts/${manuscriptId}/history`);
+      return res.json();
+    },
+  });
+
+  if (history.length < 2) return null;
+
+  const sorted = [...history].reverse(); // oldest first
+  const latest = sorted[sorted.length - 1];
+  const previous = sorted[sorted.length - 2];
+  const delta = latest.readinessScore - previous.readinessScore;
+  const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+  const deltaColor = delta > 0 ? "text-green-600" : delta < 0 ? "text-red-500" : "text-muted-foreground";
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <History className="w-4 h-4 text-primary" />
+        Score History
+        <Badge variant="secondary" className="text-[10px]">{history.length} audits</Badge>
+      </h3>
+      <Card className="p-3">
+        <div className="flex items-center gap-3 mb-3">
+          <DeltaIcon className={`w-5 h-5 ${deltaColor}`} />
+          <span className={`text-lg font-bold ${deltaColor}`}>
+            {delta > 0 ? "+" : ""}{delta} points
+          </span>
+          <span className="text-xs text-muted-foreground">vs previous audit</span>
+        </div>
+
+        <div className="flex items-end gap-1 h-16">
+          {sorted.map((entry, i) => {
+            const height = `${Math.max(8, entry.readinessScore)}%`;
+            const isLatest = i === sorted.length - 1;
+            return (
+              <Tooltip key={entry.id}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={`flex-1 rounded-t-sm transition-all cursor-help ${isLatest ? "bg-primary" : "bg-primary/30"}`}
+                    style={{ height }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <p className="font-semibold">{entry.readinessScore}/100</p>
+                  <p className="text-muted-foreground">
+                    {new Date(entry.createdAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {entry.criticalIssueCount} critical, {entry.feedbackCount} feedback
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+          <span>{new Date(sorted[0].createdAt).toLocaleDateString()}</span>
+          <span>{new Date(sorted[sorted.length - 1].createdAt).toLocaleDateString()}</span>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+interface CitationData {
+  inTextCitationCount: number;
+  referenceCount: number;
+  citationStyle: string;
+  hasReferenceSection: boolean;
+  references: { text: string; year: number | null; hasDoiOrUrl: boolean }[];
+  issues: string[];
+  stats: { withDoi: number; recentFiveYears: number; oldestYear: number | null; newestYear: number | null };
+}
+
+function CitationAnalysis({ manuscriptId }: { manuscriptId: string }) {
+  const [citations, setCitations] = useState<CitationData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRefs, setShowRefs] = useState(false);
+  const { toast } = useToast();
+
+  const analyze = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/citations`);
+      const data = await res.json();
+      setCitations(data);
+    } catch {
+      setError("Failed to extract citations");
+      toast({ title: "Error", description: "Citation extraction failed", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!citations && !isLoading) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Quote className="w-4 h-4 text-primary" />
+          Citation Analysis
+        </h3>
+        <Card className="p-4">
+          <p className="text-xs text-muted-foreground mb-3">
+            Analyze your manuscript's citations and references for completeness, recency, and formatting.
+          </p>
+          <Button size="sm" onClick={analyze} className="text-xs">
+            <Search className="w-3.5 h-3.5 mr-1.5" />
+            Analyze Citations
+          </Button>
+          {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Quote className="w-4 h-4 text-primary" />
+          Citation Analysis
+        </h3>
+        <Card className="p-4 flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-xs text-muted-foreground">Extracting citations...</span>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!citations) return null;
+
+  const doiPercent = citations.referenceCount > 0
+    ? Math.round((citations.stats.withDoi / citations.referenceCount) * 100)
+    : 0;
+  const recentPercent = citations.referenceCount > 0
+    ? Math.round((citations.stats.recentFiveYears / citations.referenceCount) * 100)
+    : 0;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <Quote className="w-4 h-4 text-primary" />
+        Citation Analysis
+        <Badge variant="secondary" className="text-[10px]">{citations.citationStyle}</Badge>
+      </h3>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold text-primary">{citations.inTextCitationCount}</p>
+          <p className="text-[10px] text-muted-foreground">In-text Citations</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold text-primary">{citations.referenceCount}</p>
+          <p className="text-[10px] text-muted-foreground">References Found</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold">{doiPercent}%</p>
+          <p className="text-[10px] text-muted-foreground">Have DOI/URL</p>
+        </Card>
+        <Card className="p-3 text-center">
+          <p className="text-lg font-bold">{recentPercent}%</p>
+          <p className="text-[10px] text-muted-foreground">Last 5 Years</p>
+        </Card>
+      </div>
+
+      {citations.stats.oldestYear && citations.stats.newestYear && (
+        <p className="text-[10px] text-muted-foreground mb-3">
+          Year range: {citations.stats.oldestYear} – {citations.stats.newestYear}
+        </p>
+      )}
+
+      {/* Issues */}
+      {citations.issues.length > 0 && (
+        <Card className="p-3 mb-3 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+            Issues ({citations.issues.length})
+          </h4>
+          <ul className="space-y-1.5">
+            {citations.issues.map((issue, i) => (
+              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-amber-600 shrink-0 mt-0.5">&bull;</span>
+                {issue}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {citations.issues.length === 0 && (
+        <Card className="p-3 mb-3 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+          <p className="text-xs flex items-center gap-1.5 text-green-700 dark:text-green-400">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            No citation issues detected
+          </p>
+        </Card>
+      )}
+
+      {/* Reference list toggle */}
+      {citations.references.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowRefs(!showRefs)}
+            className="text-xs text-primary flex items-center gap-1 mb-2 hover:underline"
+          >
+            {showRefs ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {showRefs ? "Hide" : "Show"} references ({citations.references.length})
+          </button>
+          {showRefs && (
+            <Card className="p-3 max-h-60 overflow-y-auto">
+              <ul className="space-y-2">
+                {citations.references.map((ref, i) => (
+                  <li key={i} className="text-[11px] text-muted-foreground border-b border-border/50 pb-1.5 last:border-0">
+                    <span>{ref.text}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {ref.year && <Badge variant="outline" className="text-[9px] h-4">{ref.year}</Badge>}
+                      {ref.hasDoiOrUrl && (
+                        <Badge variant="secondary" className="text-[9px] h-4">
+                          <Link2 className="w-2.5 h-2.5 mr-0.5" />
+                          DOI/URL
+                        </Badge>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Re-analyze button */}
+      <Button variant="ghost" size="sm" onClick={analyze} className="text-xs mt-2 h-7">
+        <RefreshCw className="w-3 h-3 mr-1" />
+        Re-analyze
+      </Button>
+    </div>
+  );
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function AuditChatPanel({ manuscriptId, hasAnalysis }: { manuscriptId: string; hasAnalysis: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    const userMsg: ChatMessage = { role: "user", content: input.trim() };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscriptId}/chat`, {
+        message: userMsg.content,
+        history: messages.slice(-6),
+      });
+      const data = await res.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+    } catch {
+      toast({ title: "Chat Error", description: "Failed to get a response. Try again.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!hasAnalysis) return null;
+
+  return (
+    <>
+      {/* Floating chat button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        data-testid="button-chat-toggle"
+      >
+        {isOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+      </button>
+
+      {/* Chat panel */}
+      {isOpen && (
+        <div className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 h-[28rem] bg-card border border-border rounded-lg shadow-xl flex flex-col animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-3 border-b flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Ask about your audit</h3>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+            {messages.length === 0 && (
+              <div className="text-center py-8">
+                <MessageCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground mb-3">Ask questions about your audit results</p>
+                <div className="space-y-1.5">
+                  {[
+                    "How can I improve my Methods section?",
+                    "What are my biggest issues?",
+                    "How do I fix the abstract structure?",
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => { setInput(suggestion); }}
+                      className="block w-full text-left text-xs text-primary hover:bg-muted rounded-md px-2 py-1.5 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                }`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg px-3 py-2 text-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border-t">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                placeholder="Ask a question..."
+                className="flex-1 text-sm bg-muted rounded-md px-3 py-1.5 border-0 outline-none focus:ring-1 focus:ring-primary"
+                disabled={isLoading}
+                data-testid="input-chat"
+              />
+              <Button
+                size="sm"
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                className="px-2"
+                data-testid="button-chat-send"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function ManuscriptWorkspace() {
   const [, navigate] = useLocation();
   const [matched, params] = useRoute("/manuscript/:id");
@@ -1002,6 +1408,7 @@ export default function ManuscriptWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId] });
       queryClient.invalidateQueries({ queryKey: ["/api/manuscripts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/manuscripts", manuscriptId, "history"] });
       // Reset UI state that references old analysis data
       setCheckedItems(new Set());
       setCheckedItemsLoaded(false);
@@ -1230,6 +1637,9 @@ export default function ManuscriptWorkspace() {
   };
 
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(manuscript?.shareToken || null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -1238,6 +1648,48 @@ export default function ManuscriptWorkspace() {
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [showExportMenu]);
+
+  // Sync shareToken from manuscript when it loads
+  useEffect(() => {
+    if (manuscript?.shareToken) setShareToken(manuscript.shareToken);
+  }, [manuscript?.shareToken]);
+
+  const handleGenerateShareLink = async () => {
+    if (!manuscript) return;
+    setIsGeneratingLink(true);
+    try {
+      const res = await apiRequest("POST", `/api/manuscripts/${manuscript.id}/share`);
+      const data = await res.json();
+      setShareToken(data.shareToken);
+      toast({ title: "Share Link Created", description: "Anyone with the link can view your audit report." });
+    } catch {
+      toast({ title: "Error", description: "Failed to generate share link", variant: "destructive" });
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRevokeShareLink = async () => {
+    if (!manuscript) return;
+    try {
+      await apiRequest("DELETE", `/api/manuscripts/${manuscript.id}/share`);
+      setShareToken(null);
+      toast({ title: "Link Revoked", description: "The share link has been disabled." });
+    } catch {
+      toast({ title: "Error", description: "Failed to revoke share link", variant: "destructive" });
+    }
+  };
+
+  const getShareUrl = () => {
+    if (!shareToken) return "";
+    return `${window.location.origin}/shared/${shareToken}`;
+  };
+
+  const copyShareLink = () => {
+    const url = getShareUrl();
+    navigator.clipboard.writeText(url);
+    toast({ title: "Copied!", description: "Share link copied to clipboard." });
+  };
 
   const detailedFeedback = analysis?.detailedFeedback || [];
   const actionItems = analysis?.actionItems || [];
@@ -1358,6 +1810,18 @@ export default function ManuscriptWorkspace() {
                 )}
               </div>
             )}
+            {hasAnalysis && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowShareDialog(true)}
+                data-testid="button-share-report"
+                className="px-2 sm:px-3"
+              >
+                <Share2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            )}
             <Button
               variant={hasAnalysis ? "outline" : "default"}
               size="sm"
@@ -1404,6 +1868,64 @@ export default function ManuscriptWorkspace() {
         onOpenChange={setShowUpdateTextDialog}
         manuscriptId={manuscript.id}
       />
+
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" />
+              Share Audit Report
+            </DialogTitle>
+            <DialogDescription>
+              Generate a public link to share your audit results. Only the audit analysis is shared — your full manuscript text stays private.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {shareToken ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-muted rounded-md px-3 py-2 text-xs font-mono break-all">
+                    {getShareUrl()}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={copyShareLink} className="shrink-0">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <LinkIcon className="w-3 h-3" />
+                    Link is active
+                  </p>
+                  <Button size="sm" variant="destructive" onClick={handleRevokeShareLink}>
+                    Revoke Link
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  No share link exists yet. Create one to let others view your audit report.
+                </p>
+                <Button onClick={handleGenerateShareLink} disabled={isGeneratingLink}>
+                  {isGeneratingLink ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-4 h-4 mr-2" />
+                      Generate Share Link
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AuditChatPanel manuscriptId={manuscript.id} hasAnalysis={!!hasAnalysis} />
 
       <div className="max-w-[95%] mx-auto p-2 sm:p-4">
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4" style={{ minHeight: "calc(100vh - 100px)" }}>
@@ -1597,6 +2119,8 @@ export default function ManuscriptWorkspace() {
                           />
                         )}
 
+                        <AuditScoreTrend manuscriptId={manuscriptId!} />
+
                         {analysis.abstractAnalysis && (
                         <div>
                           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -1720,6 +2244,8 @@ export default function ManuscriptWorkspace() {
                             </Card>
                           </div>
                         )}
+
+                        <CitationAnalysis manuscriptId={manuscriptId!} />
                       </div>
                     </TabsContent>
 

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { insertManuscriptSchema, profileSetupSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
@@ -184,6 +185,97 @@ function calculateLevel(totalXP: number): number {
   return level;
 }
 
+/**
+ * Extract citations from manuscript text using common academic reference patterns.
+ */
+function extractCitations(text: string) {
+  // Find in-text citations: (Author, Year), (Author et al., Year), [1], [1,2], [1-3]
+  const parentheticalRefs = text.match(/\([A-Z][a-z]+(?:\s(?:et\s+al\.?|&\s+[A-Z][a-z]+))?,?\s*\d{4}[a-z]?\)/g) || [];
+  const numericRefs = text.match(/\[\d+(?:[,\s-]+\d+)*\]/g) || [];
+  const inTextCount = parentheticalRefs.length + numericRefs.length;
+
+  // Try to find the references/bibliography section
+  const refSectionMatch = text.match(/\n\s*(References|Bibliography|Works Cited|Literature Cited)\s*\n/i);
+  const refSectionStart = refSectionMatch ? refSectionMatch.index! : -1;
+  const refText = refSectionStart >= 0 ? text.slice(refSectionStart) : "";
+
+  // Extract individual reference entries from the reference list
+  const refEntries: { text: string; year: number | null; hasDoiOrUrl: boolean }[] = [];
+  if (refText) {
+    // Split by common patterns: numbered refs [1], or lines starting with author names
+    const lines = refText.split(/\n/).filter(l => l.trim().length > 20);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip the section header itself
+      if (/^(References|Bibliography|Works Cited|Literature Cited)$/i.test(trimmed)) continue;
+      // Skip lines that are clearly not references
+      if (trimmed.length < 30) continue;
+
+      const yearMatch = trimmed.match(/\b(19|20)\d{2}[a-z]?\b/);
+      const year = yearMatch ? parseInt(yearMatch[0]) : null;
+      const hasDoiOrUrl = /doi[:\s]|https?:\/\/|10\.\d{4,}/i.test(trimmed);
+
+      refEntries.push({ text: trimmed.slice(0, 200), year, hasDoiOrUrl });
+    }
+  }
+
+  // Analyze issues
+  const issues: string[] = [];
+  const currentYear = new Date().getFullYear();
+
+  if (inTextCount === 0) {
+    issues.push("No in-text citations detected. Ensure citations follow (Author, Year) or [Number] format.");
+  }
+
+  if (refEntries.length === 0 && refSectionStart < 0) {
+    issues.push("No References section found. Add a clearly labeled 'References' section.");
+  }
+
+  if (refEntries.length > 0) {
+    const withDoi = refEntries.filter(r => r.hasDoiOrUrl).length;
+    const doiPercent = Math.round((withDoi / refEntries.length) * 100);
+    if (doiPercent < 50) {
+      issues.push(`Only ${doiPercent}% of references include DOIs or URLs. Adding DOIs improves verifiability.`);
+    }
+
+    const years = refEntries.map(r => r.year).filter((y): y is number => y !== null);
+    if (years.length > 0) {
+      const recentCount = years.filter(y => y >= currentYear - 5).length;
+      const recentPercent = Math.round((recentCount / years.length) * 100);
+      if (recentPercent < 30) {
+        issues.push(`Only ${recentPercent}% of references are from the last 5 years. Consider adding more recent sources.`);
+      }
+      const oldestYear = Math.min(...years);
+      const newestYear = Math.max(...years);
+      if (newestYear < currentYear - 3) {
+        issues.push(`Most recent reference is from ${newestYear}. Consider updating with more current literature.`);
+      }
+    }
+
+    if (refEntries.length < 10) {
+      issues.push(`Only ${refEntries.length} references found. Most journals expect 20-50 references for a full paper.`);
+    }
+  }
+
+  // Check for self-citation issues (rough heuristic)
+  const style = numericRefs.length > parentheticalRefs.length ? "numeric" : "author-year";
+
+  return {
+    inTextCitationCount: inTextCount,
+    referenceCount: refEntries.length,
+    citationStyle: style,
+    hasReferenceSection: refSectionStart >= 0,
+    references: refEntries.slice(0, 50), // cap at 50 for response size
+    issues,
+    stats: {
+      withDoi: refEntries.filter(r => r.hasDoiOrUrl).length,
+      recentFiveYears: refEntries.filter(r => r.year !== null && r.year >= currentYear - 5).length,
+      oldestYear: refEntries.length > 0 ? Math.min(...refEntries.map(r => r.year).filter((y): y is number => y !== null)) : null,
+      newestYear: refEntries.length > 0 ? Math.max(...refEntries.map(r => r.year).filter((y): y is number => y !== null)) : null,
+    },
+  };
+}
+
 // General API rate limit: 100 requests per minute per user
 const apiLimiter = rateLimit({ windowMs: 60_000, maxRequests: 100 });
 
@@ -263,6 +355,17 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting user:", error);
       return res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Leaderboard: top users by XP
+  app.get("/api/leaderboard", isAuthenticated, async (_req: any, res) => {
+    try {
+      const leaders = await storage.getLeaderboard(10);
+      return res.json(leaders);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      return res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
   });
 
@@ -532,6 +635,23 @@ ${truncatedText}` },
       const readinessScore = analysisJson.readinessScore ?? null;
       await storage.updateManuscriptAnalysis(manuscript.id, analysisJson, "completed", readinessScore, moduleData.files);
 
+      // --- Audit History: save snapshot for version comparison ---
+      try {
+        await storage.addAuditHistory({
+          manuscriptId: manuscript.id,
+          readinessScore: readinessScore ?? 0,
+          paperType: paperType,
+          helpTypes: selectedHelpTypes,
+          summary: analysisJson.executiveSummary || analysisJson.summary || "",
+          criticalIssueCount: (analysisJson.criticalIssues || []).length,
+          feedbackCount: (analysisJson.detailedFeedback || []).length,
+          actionItemCount: (analysisJson.actionItems || []).length,
+          scoreBreakdown: analysisJson.scoreBreakdown || null,
+        });
+      } catch (histErr) {
+        console.error("Audit history save error:", histErr);
+      }
+
       // --- Gamification: award XP, update streak, check level-up ---
       try {
         const xpEarned = calculateAuditXP(textToAnalyze.length, selectedHelpTypes, readinessScore);
@@ -606,6 +726,194 @@ ${truncatedText}` },
     } catch (error) {
       console.error("Error detecting paper type:", error);
       return res.status(500).json({ message: "Failed to detect paper type" });
+    }
+  });
+
+  // Citation extraction and analysis
+  app.post("/api/manuscripts/:id/citations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      const text = manuscript.fullText || manuscript.previewText || "";
+      if (!text) {
+        return res.status(400).json({ message: "No manuscript text available" });
+      }
+
+      const citations = extractCitations(text);
+      return res.json(citations);
+    } catch (error) {
+      console.error("Citation extraction error:", error);
+      return res.status(500).json({ message: "Failed to extract citations" });
+    }
+  });
+
+  // Generate a share link for a manuscript's audit report
+  app.post("/api/manuscripts/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first before sharing." });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      await storage.updateManuscriptShareToken(req.params.id, token);
+      return res.json({ shareToken: token });
+    } catch (error) {
+      console.error("Share link error:", error);
+      return res.status(500).json({ message: "Failed to generate share link" });
+    }
+  });
+
+  // Revoke a share link
+  app.delete("/api/manuscripts/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+
+      await storage.updateManuscriptShareToken(req.params.id, null);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Revoke share error:", error);
+      return res.status(500).json({ message: "Failed to revoke share link" });
+    }
+  });
+
+  // View a shared report (public, no auth required)
+  app.get("/api/shared/:token", async (req, res) => {
+    try {
+      const manuscript = await storage.getManuscriptByShareToken(req.params.token);
+      if (!manuscript || !manuscript.shareToken) {
+        return res.status(404).json({ message: "Shared report not found" });
+      }
+
+      // Return only the audit data, not the full manuscript text
+      const analysis = manuscript.analysisJson as any;
+      return res.json({
+        title: manuscript.title || manuscript.fileName || "Untitled",
+        paperType: manuscript.paperType,
+        readinessScore: manuscript.readinessScore,
+        analysisStatus: manuscript.analysisStatus,
+        analysis: analysis ? {
+          readinessScore: analysis.readinessScore,
+          executiveSummary: analysis.executiveSummary || analysis.summary,
+          scoreBreakdown: analysis.scoreBreakdown,
+          criticalIssues: analysis.criticalIssues,
+          detailedFeedback: analysis.detailedFeedback,
+          actionItems: analysis.actionItems,
+          strengthsToMaintain: analysis.strengthsToMaintain,
+          paperTypeLabel: analysis.paperTypeLabel,
+          documentClassification: analysis.documentClassification,
+        } : null,
+        createdAt: manuscript.createdAt,
+      });
+    } catch (error) {
+      console.error("Shared report error:", error);
+      return res.status(500).json({ message: "Failed to load shared report" });
+    }
+  });
+
+  // Chat about audit results
+  app.post("/api/manuscripts/:id/chat", isAuthenticated, analyzeLimiter, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      if (!manuscript.analysisJson) {
+        return res.status(400).json({ message: "Run an audit first before asking questions." });
+      }
+
+      const { message, history: chatHistory } = req.body;
+      if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const analysis = manuscript.analysisJson as any;
+      const auditContext = JSON.stringify({
+        readinessScore: analysis.readinessScore,
+        executiveSummary: analysis.executiveSummary,
+        criticalIssues: analysis.criticalIssues?.slice(0, 5),
+        detailedFeedback: analysis.detailedFeedback?.slice(0, 10),
+        actionItems: analysis.actionItems?.slice(0, 10),
+        strengthsToMaintain: analysis.strengthsToMaintain,
+      });
+
+      const openai = new OpenAI({ apiKey });
+      const messages: any[] = [
+        {
+          role: "system",
+          content: `You are AXIOM's research writing assistant. The user is asking questions about their manuscript audit results. Be concise, specific, and actionable. Reference specific findings from the audit when relevant.
+
+Here is the audit context:
+${auditContext}
+
+Manuscript title: ${manuscript.title || "Untitled"}
+Paper type: ${manuscript.paperType || "generic"}
+
+Guidelines:
+- Keep answers concise (2-4 paragraphs max)
+- Reference specific audit findings when relevant
+- Provide actionable, concrete suggestions
+- Use academic writing conventions`,
+        },
+      ];
+
+      // Include recent chat history for context (max 6 messages)
+      if (Array.isArray(chatHistory)) {
+        for (const msg of chatHistory.slice(-6)) {
+          if (msg.role === "user" || msg.role === "assistant") {
+            messages.push({ role: msg.role, content: String(msg.content).slice(0, 1000) });
+          }
+        }
+      }
+
+      messages.push({ role: "user", content: message.slice(0, 2000) });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages,
+        max_tokens: 1000,
+        temperature: 0.4,
+      });
+
+      const reply = response.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
+      return res.json({ reply });
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      return res.status(500).json({ message: "Chat failed. Please try again." });
+    }
+  });
+
+  // Audit history endpoint
+  app.get("/api/manuscripts/:id/history", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const manuscript = await storage.getManuscript(req.params.id);
+      if (!manuscript || manuscript.userId !== userId) {
+        return res.status(404).json({ message: "Manuscript not found" });
+      }
+      const history = await storage.getAuditHistory(req.params.id);
+      return res.json(history);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+      return res.status(500).json({ message: "Failed to fetch audit history" });
     }
   });
 

@@ -1,6 +1,6 @@
-import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, users, manuscripts } from "@shared/schema";
+import { type User, type Manuscript, type InsertManuscript, type ProfileSetup, type AuditHistoryEntry, users, manuscripts, auditHistory } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc, gt, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -18,6 +18,11 @@ export interface IStorage {
   updateManuscriptActionItems(id: string, completedIndices: number[]): Promise<Manuscript | undefined>;
   deleteManuscript(id: string): Promise<void>;
   deleteManuscriptsByUserId(userId: string): Promise<void>;
+  addAuditHistory(entry: { manuscriptId: string; readinessScore: number; paperType?: string; helpTypes?: string[]; summary?: string; criticalIssueCount: number; feedbackCount: number; actionItemCount: number; scoreBreakdown?: any }): Promise<AuditHistoryEntry>;
+  getAuditHistory(manuscriptId: string): Promise<AuditHistoryEntry[]>;
+  updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined>;
+  getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined>;
+  getLeaderboard(limit?: number): Promise<{ id: string; firstName: string | null; lastName: string | null; profileImageUrl: string | null; primaryField: string | null; xp: number; level: number; streak: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -118,6 +123,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteManuscriptsByUserId(userId: string): Promise<void> {
     await db.delete(manuscripts).where(eq(manuscripts.userId, userId));
+  }
+
+  async addAuditHistory(entry: { manuscriptId: string; readinessScore: number; paperType?: string; helpTypes?: string[]; summary?: string; criticalIssueCount: number; feedbackCount: number; actionItemCount: number; scoreBreakdown?: any }): Promise<AuditHistoryEntry> {
+    const [row] = await db.insert(auditHistory).values({
+      manuscriptId: entry.manuscriptId,
+      readinessScore: entry.readinessScore,
+      paperType: entry.paperType,
+      helpTypes: entry.helpTypes || [],
+      summary: entry.summary,
+      criticalIssueCount: entry.criticalIssueCount,
+      feedbackCount: entry.feedbackCount,
+      actionItemCount: entry.actionItemCount,
+      scoreBreakdown: entry.scoreBreakdown,
+    }).returning();
+    return row;
+  }
+
+  async getAuditHistory(manuscriptId: string): Promise<AuditHistoryEntry[]> {
+    return db.select().from(auditHistory).where(eq(auditHistory.manuscriptId, manuscriptId)).orderBy(desc(auditHistory.createdAt));
+  }
+
+  async updateManuscriptShareToken(id: string, shareToken: string | null): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.update(manuscripts).set({ shareToken }).where(eq(manuscripts.id, id)).returning();
+    return manuscript;
+  }
+
+  async getManuscriptByShareToken(shareToken: string): Promise<Manuscript | undefined> {
+    const [manuscript] = await db.select().from(manuscripts).where(eq(manuscripts.shareToken, shareToken));
+    return manuscript;
+  }
+
+  async getLeaderboard(limit = 10) {
+    return db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      primaryField: users.primaryField,
+      xp: users.xp,
+      level: users.level,
+      streak: users.streak,
+    }).from(users).where(gt(users.xp, 0)).orderBy(desc(users.xp)).limit(limit);
   }
 }
 
